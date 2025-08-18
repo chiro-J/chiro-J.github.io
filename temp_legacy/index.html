@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Developer Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 z-50 w-full border-b border-gray-800 bg-black/80 backdrop-blur-md">
+        <div class="container px-6 py-4 mx-auto">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="status-indicator"></div>
+                    <span class="text-green-400 code-font">&lt;Developer/&gt;</span>
+                </div>
+                <div class="hidden space-x-8 md:flex">
+                    <a href="#home" class="transition-colors hover:text-green-400">Home</a>
+                    <a href="#about" class="transition-colors hover:text-green-400">About</a>
+                    <a href="#courses" class="transition-colors hover:text-green-400">Courses</a>
+                    <a href="#projects" class="transition-colors hover:text-green-400">Projects</a>
+                    <a href="#skills" class="transition-colors hover:text-green-400">Skills</a>
+                    <a href="#contact" class="transition-colors hover:text-green-400">Contact</a>
+                </div>
+                <button class="text-xl md:hidden" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden bg-black/90 backdrop-blur-md">
+            <div class="px-6 py-4 space-y-4">
+                <a href="#home" class="block transition-colors hover:text-green-400">Home</a>
+                <a href="#about" class="block transition-colors hover:text-green-400">About</a>
+                <a href="#courses" class="block transition-colors hover:text-green-400">Courses</a>
+                <a href="#projects" class="block transition-colors hover:text-green-400">Projects</a>
+                <a href="#skills" class="block transition-colors hover:text-green-400">Skills</a>
+                <a href="#contact" class="block transition-colors hover:text-green-400">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative flex items-center justify-center min-h-screen hero-section">
+        <!-- Floating Code Elements -->
+        <div class="floating-code top-20 left-10" style="animation-delay: -1s;">const skills = ['JavaScript', 'Python', 'React'];</div>
+        <div class="floating-code top-40 right-20" style="animation-delay: -3s;">function buildFuture() { return 'innovation'; }</div>
+        <div class="floating-code bottom-32 left-20" style="animation-delay: -2s;">&lt;div className="developer-mindset"&gt;</div>
+        <div class="floating-code bottom-20 right-10" style="animation-delay: -4s;">git commit -m "Level up complete"</div>
+        
+        <div class="z-10 max-w-4xl px-6 mx-auto text-center">
+            <div class="mb-6">
+                <span class="text-lg text-green-400 code-font">&lt;h1&gt;</span>
+            </div>
+            <h1 class="mb-6 text-6xl font-bold md:text-8xl">
+                <span class="gradient-text">Software</span><br>
+                <span class="neon-glow">Developer</span>
+            </h1>
+            <div class="mb-6">
+                <span class="text-lg text-green-400 code-font">&lt;/h1&gt;</span>
+            </div>
+            
+            <div class="mb-8 text-xl text-gray-300 code-font md:text-2xl">
+                <span id="typingText" class="typing-animation">Building the future, one line of code at a time</span>
+            </div>
+            
+            <p class="max-w-2xl mx-auto mb-12 text-lg text-gray-400">
+                Passionate about creating innovative solutions through code. Currently mastering 
+                modern web technologies and software development practices.
+            </p>
+            
+            <div class="flex flex-col justify-center gap-4 sm:flex-row">
+                <a href="#projects" class="px-8 py-4 font-semibold transition-all duration-300 transform rounded-full shadow-lg bg-gradient-to-r from-green-500 to-blue-500 hover:scale-105 hover:shadow-green-500/25">
+                    View My Work
+                </a>
+                <a href="#contact" class="px-8 py-4 font-semibold transition-all duration-300 border-2 border-green-400 rounded-full hover:bg-green-400/10">
+                    Get In Touch
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-20 bg-gray-900/50">
+        <div class="container px-6 mx-auto">
+            <h2 class="mb-16 text-4xl font-bold text-center md:text-5xl">
+                <span class="text-green-400 code-font">&lt;</span>
+                <span class="gradient-text">About Me</span>
+                <span class="text-green-400 code-font">/&gt;</span>
+            </h2>
+            
+            <div class="grid items-center gap-12 md:grid-cols-2">
+                <div>
+                    <div class="flex items-center justify-center w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-green-400 to-blue-500 text-8xl">
+                        👨‍💻
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <h3 class="text-3xl font-bold text-green-400">Hello, I'm a Developer!</h3>
+                    <p class="text-lg leading-relaxed text-gray-300">
+                        I'm passionate about software development and constantly learning new technologies. 
+                        My journey in programming started with curiosity and has evolved into a deep 
+                        commitment to creating meaningful digital solutions.
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 rounded-lg bg-gray-800/50">
+                            <h4 class="mb-2 font-semibold text-green-400">Focus Areas</h4>
+                            <ul class="space-y-1 text-sm text-gray-300">
+                                <li>• Web Development</li>
+                                <li>• Mobile Apps</li>
+                                <li>• Backend Systems</li>
+                                <li>• UI/UX Design</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="p-4 rounded-lg bg-gray-800/50">
+                            <h4 class="mb-2 font-semibold text-green-400">Interests</h4>
+                            <ul class="space-y-1 text-sm text-gray-300">
+                                <li>• AI & Machine Learning</li>
+                                <li>• Cloud Computing</li>
+                                <li>• Open Source</li>
+                                <li>• Tech Innovation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Courses Section -->
+    <section id="courses" class="py-20">
+        <div class="container px-6 mx-auto">
+            <h2 class="mb-16 text-4xl font-bold text-center md:text-5xl">
+                <span class="text-green-400 code-font">&lt;</span>
+                <span class="gradient-text">My Courses</span>
+                <span class="text-green-400 code-font">/&gt;</span>
+            </h2>
+            
+            <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <!-- Course 1 -->
+                <div class="relative p-6 course-card rounded-xl">
+                    <div class="mb-4 text-4xl">🌐</div>
+                    <h3 class="mb-3 text-2xl font-bold text-green-400">Full Stack Web Development</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2 text-sm">
+                            <span>Progress</span>
+                            <span>85%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full">
+                            <div class="h-2 rounded-full progress-bar" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <p class="mb-4 text-gray-300">Comprehensive course covering HTML, CSS, JavaScript, React, Node.js, and database management.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-3 py-1 text-sm text-blue-300 rounded-full bg-blue-500/20">React</span>
+                        <span class="px-3 py-1 text-sm text-green-300 rounded-full bg-green-500/20">Node.js</span>
+                        <span class="px-3 py-1 text-sm text-yellow-300 rounded-full bg-yellow-500/20">JavaScript</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="mr-2 fas fa-calendar"></i>Duration: 6 months
+                    </div>
+                </div>
+
+                <!-- Course 2 -->
+                <div class="relative p-6 course-card rounded-xl">
+                    <div class="mb-4 text-4xl">🐍</div>
+                    <h3 class="mb-3 text-2xl font-bold text-green-400">Python Programming</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2 text-sm">
+                            <span>Progress</span>
+                            <span>92%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full">
+                            <div class="h-2 rounded-full progress-bar" style="width: 92%"></div>
+                        </div>
+                    </div>
+                    <p class="mb-4 text-gray-300">From basics to advanced Python concepts including OOP, data structures, and web frameworks like Django.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-3 py-1 text-sm text-blue-300 rounded-full bg-blue-500/20">Python</span>
+                        <span class="px-3 py-1 text-sm text-green-300 rounded-full bg-green-500/20">Django</span>
+                        <span class="px-3 py-1 text-sm text-purple-300 rounded-full bg-purple-500/20">Flask</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="mr-2 fas fa-calendar"></i>Duration: 4 months
+                    </div>
+                </div>
+
+                <!-- Course 3 -->
+                <div class="relative p-6 course-card rounded-xl">
+                    <div class="mb-4 text-4xl">📱</div>
+                    <h3 class="mb-3 text-2xl font-bold text-green-400">Mobile App Development</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2 text-sm">
+                            <span>Progress</span>
+                            <span>78%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full">
+                            <div class="h-2 rounded-full progress-bar" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    <p class="mb-4 text-gray-300">Learning React Native and Flutter to build cross-platform mobile applications with native performance.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-3 py-1 text-sm text-blue-300 rounded-full bg-blue-500/20">React Native</span>
+                        <span class="px-3 py-1 text-sm rounded-full bg-cyan-500/20 text-cyan-300">Flutter</span>
+                        <span class="px-3 py-1 text-sm text-orange-300 rounded-full bg-orange-500/20">Dart</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="mr-2 fas fa-calendar"></i>Duration: 5 months
+                    </div>
+                </div>
+
+                <!-- Course 4 -->
+                <div class="relative p-6 course-card rounded-xl">
+                    <div class="mb-4 text-4xl">🗄️</div>
+                    <h3 class="mb-3 text-2xl font-bold text-green-400">Database Management</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2 text-sm">
+                            <span>Progress</span>
+                            <span>95%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full">
+                            <div class="h-2 rounded-full progress-bar" style="width: 95%"></div>
+                        </div>
+                    </div>
+                    <p class="mb-4 text-gray-300">Mastering SQL, NoSQL databases, data modeling, and database optimization techniques.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-3 py-1 text-sm text-blue-300 rounded-full bg-blue-500/20">MySQL</span>
+                        <span class="px-3 py-1 text-sm text-green-300 rounded-full bg-green-500/20">MongoDB</span>
+                        <span class="px-3 py-1 text-sm text-red-300 rounded-full bg-red-500/20">Redis</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="mr-2 fas fa-calendar"></i>Duration: 3 months
+                    </div>
+                </div>
+
+                <!-- Course 5 -->
+                <div class="relative p-6 course-card rounded-xl">
+                    <div class="mb-4 text-4xl">☁️</div>
+                    <h3 class="mb-3 text-2xl font-bold text-green-400">Cloud Computing</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2 text-sm">
+                            <span>Progress</span>
+                            <span>60%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full">
+                            <div class="h-2 rounded-full progress-bar" style="width: 60%"></div>
+                        </div>
+                    </div>
+                    <p class="mb-4 text-gray-300">Learning AWS, Azure, and Docker containerization for scalable cloud-native applications.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-3 py-1 text-sm text-orange-300 rounded-full bg-orange-500/20">AWS</span>
+                        <span class="px-3 py-1 text-sm text-blue-300 rounded-full bg-blue-500/20">Docker</span>
+                        <span class="px-3 py-1 text-sm text-purple-300 rounded-full bg-purple-500/20">Kubernetes</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="mr-2 fas fa-calendar"></i>Duration: 4 months
+                    </div>
+                </div>
+
+                <!-- Course 6 -->
+                <div class="relative p-6 course-card rounded-xl">
+                    <div class="mb-4 text-4xl">🤖</div>
+                    <h3 class="mb-3 text-2xl font-bold text-green-400">AI & Machine Learning</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2 text-sm">
+                            <span>Progress</span>
+                            <span>45%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full">
+                            <div class="h-2 rounded-full progress-bar" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <p class="mb-4 text-gray-300">Exploring machine learning algorithms, neural networks, and AI application development.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-3 py-1 text-sm text-orange-300 rounded-full bg-orange-500/20">TensorFlow</span>
+                        <span class="px-3 py-1 text-sm text-blue-300 rounded-full bg-blue-500/20">PyTorch</span>
+                        <span class="px-3 py-1 text-sm text-green-300 rounded-full bg-green-500/20">Scikit-learn</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="mr-2 fas fa-calendar"></i>Duration: 6 months
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Projects Section -->
+    <section id="projects" class="py-20 bg-gray-900/30">
+        <div class="container px-6 mx-auto">
+            <h2 class="mb-16 text-4xl font-bold text-center md:text-5xl">
+                <span class="text-green-400 code-font">&lt;</span>
+                <span class="gradient-text">My Projects</span>
+                <span class="text-green-400 code-font">/&gt;</span>
+            </h2>
+            
+            <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <!-- Project 1 -->
+                <div class="p-6 project-card rounded-xl">
+                    <div class="flex items-center justify-center h-48 mb-4 text-6xl rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+                        🌐
+                    </div>
+                    <h3 class="mb-3 text-2xl font-bold">E-Commerce Platform</h3>
+                    <p class="mb-4 text-gray-300">Full-stack e-commerce solution with React frontend, Node.js backend, and MongoDB database.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-2 py-1 text-sm text-blue-300 rounded bg-blue-500/20">React</span>
+                        <span class="px-2 py-1 text-sm text-green-300 rounded bg-green-500/20">Node.js</span>
+                        <span class="px-2 py-1 text-sm text-purple-300 rounded bg-purple-500/20">MongoDB</span>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button class="flex-1 py-2 transition-colors bg-blue-600 rounded hover:bg-blue-700">
+                            <i class="mr-2 fab fa-github"></i>Code
+                        </button>
+                        <button class="flex-1 py-2 transition-colors border border-blue-600 rounded hover:bg-blue-600/10">
+                            <i class="mr-2 fas fa-external-link-alt"></i>Demo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Project 2 -->
+                <div class="p-6 project-card rounded-xl">
+                    <div class="flex items-center justify-center h-48 mb-4 text-6xl rounded-lg bg-gradient-to-br from-green-500 to-teal-600">
+                        📱
+                    </div>
+                    <h3 class="mb-3 text-2xl font-bold">Task Management App</h3>
+                    <p class="mb-4 text-gray-300">Cross-platform mobile app built with React Native for productivity and task organization.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-2 py-1 text-sm rounded bg-cyan-500/20 text-cyan-300">React Native</span>
+                        <span class="px-2 py-1 text-sm text-purple-300 rounded bg-purple-500/20">Redux</span>
+                        <span class="px-2 py-1 text-sm text-blue-300 rounded bg-blue-500/20">Firebase</span>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button class="flex-1 py-2 transition-colors bg-blue-600 rounded hover:bg-blue-700">
+                            <i class="mr-2 fab fa-github"></i>Code
+                        </button>
+                        <button class="flex-1 py-2 transition-colors border border-blue-600 rounded hover:bg-blue-600/10">
+                            <i class="mr-2 fas fa-external-link-alt"></i>Demo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Project 3 -->
+                <div class="p-6 project-card rounded-xl">
+                    <div class="flex items-center justify-center h-48 mb-4 text-6xl rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
+                        🤖
+                    </div>
+                    <h3 class="mb-3 text-2xl font-bold">AI Chatbot</h3>
+                    <p class="mb-4 text-gray-300">Intelligent chatbot using natural language processing with Python and machine learning.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-2 py-1 text-sm text-blue-300 rounded bg-blue-500/20">Python</span>
+                        <span class="px-2 py-1 text-sm text-green-300 rounded bg-green-500/20">TensorFlow</span>
+                        <span class="bg-orange
