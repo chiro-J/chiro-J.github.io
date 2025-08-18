@@ -1,4 +1,3 @@
-import React from "react";
 import { useMobileMenu } from "../../hooks/useMobileMenu";
 import nameTypho from "../../assets/name_typho-white.png";
 
