@@ -7,7 +7,7 @@ export default function Header() {
   const { isOpen, toggleMenu, menuRef, buttonRef } = useMobileMenu();
 
   return (
-    <nav className="fixed z-50 w-full px-8 py-2 text-white bg-black-800 backdrop-blur-sm">
+    <nav className="fixed top-0 z-50 w-full px-8 py-2 text-white bg-black-800 backdrop-blur-sm">
       <div className="flex items-center justify-between w-full max-w-screen-xl mx-auto">
         {/* 로고 */}
         <div className="">
