@@ -1,42 +1,445 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* 기본 CSS 변수 정의 */
+:root {
+  /* 테마 모드 */
+  --theme-mode: light;
+
+  /* 기본 테마 색상 (라이트 모드) */
+  --theme-bg: #ffffff;
+  --theme-text: #1f2937;
+  --theme-border: #e5e7eb;
+
+  /* 싱크 모드 전용 변수 */
+  --weather-condition: clear;
+  --time-of-day: day;
+  --sun-x: 0;
+  --sun-y: 0.5;
+  --moon-x: 0;
+  --moon-y: -0.5;
+  --weather-intensity: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* 라이트 모드 강제 설정 */
+.light,
+:root.light {
+  --theme-bg: #ffffff;
+  --theme-text: #1f2937;
+  --theme-border: #e5e7eb;
+  --theme-mode: light;
+
+  /* 시스템 다크모드 무시 */
+  color-scheme: light !important;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* 다크 모드 강제 설정 */
+.dark,
+:root.dark {
+  --theme-bg: #1f2937;
+  --theme-text: #f9fafb;
+  --theme-border: #374151;
+  --theme-mode: dark;
+
+  /* 시스템 라이트모드 무시 */
+  color-scheme: dark !important;
+}
+
+/* Tailwind 클래스와 호환되도록 강제 색상 적용 */
+.light .text-gray-900 {
+  color: #111827 !important;
+}
+
+.light .text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.light .text-gray-300 {
+  color: #d1d5db !important;
+}
+
+.dark .text-white {
+  color: #ffffff !important;
+}
+
+.dark .text-gray-300 {
+  color: #d1d5db !important;
+}
+
+.dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .text-gray-900 {
+  color: #f9fafb !important;
+}
+
+.dark .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+/* 배경색도 강제 적용 */
+.light .bg-white {
+  background-color: #ffffff !important;
+}
+
+.light .bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+.light .bg-gray-100 {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .bg-gray-800 {
+  background-color: #1f2937 !important;
+}
+
+.dark .bg-gray-900 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-700 {
+  background-color: #374151 !important;
+}
+
+/* 시스템 테마 감지 무시 - 우리 클래스가 우선순위 */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    /* 시스템 다크모드여도 기본값은 라이트 */
+    --theme-bg: #ffffff;
+    --theme-text: #1f2937;
+    --theme-border: #e5e7eb;
+    color-scheme: light;
   }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.light):not(.dark) {
+    /* 시스템 라이트모드여도 기본값은 라이트 */
+    --theme-bg: #ffffff;
+    --theme-text: #1f2937;
+    --theme-border: #e5e7eb;
+    color-scheme: light;
+  }
+}
+
+/* 전역 스타일 */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* CSS 변수를 사용해서 테마 적용 */
+  background-color: var(--theme-bg) !important;
+  color: var(--theme-text) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+  /* 시스템 테마 완전 무시 */
+  color-scheme: var(--theme-mode) !important;
+}
+
+/* 브라우저 기본 스타일 재정의 */
+html {
+  scroll-behavior: smooth;
+  /* 시스템 테마 감지 무시 */
+  color-scheme: var(--theme-mode) !important;
+}
+
+/* 시스템 다크모드에서도 라이트 모드 강제 가능 */
+html.light,
+html.light body {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  color-scheme: light !important;
+}
+
+/* 시스템 라이트모드에서도 다크 모드 강제 가능 */
+html.dark,
+html.dark body {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  color-scheme: dark !important;
+}
+
+/* WebGL 캔버스가 뒤에 오도록 z-index 조정 */
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 싱크 모드 전용 스타일 */
+.sync-mode {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 시간대별 그라데이션 오버레이 (WebGL 백업용) */
+.time-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.1;
+  transition: opacity 1s ease;
+}
+
+.time-overlay.dawn {
+  background: linear-gradient(to bottom, #ff6b6b, #ffe66d);
+}
+
+.time-overlay.day {
+  background: linear-gradient(to bottom, #87ceeb, #ffffff);
+}
+
+.time-overlay.dusk {
+  background: linear-gradient(to bottom, #ff6b6b, #ff8e53);
+}
+
+.time-overlay.night {
+  background: linear-gradient(to bottom, #191970, #000080);
+}
+
+/* 날씨 효과 애니메이션 (CSS 백업용) */
+@keyframes rainDrop {
+  0% {
+    transform: translateY(-100vh) rotate(10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+@keyframes snowFall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes lightning {
+  0%,
+  90%,
+  100% {
+    opacity: 0;
+  }
+  5%,
+  85% {
+    opacity: 1;
+  }
+}
+
+/* 백드롭 블러 효과 개선 */
+.backdrop-blur-glass {
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+/* 라이트 모드에서 투명 배경 */
+.light .bg-white\/80 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.light .bg-gray-100 {
+  background-color: rgba(243, 244, 246, 0.9) !important;
+}
+
+/* 다크 모드에서 투명 배경 */
+.dark .bg-gray-800\/80 {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+}
+
+.dark .bg-gray-800 {
+  background-color: rgba(31, 41, 55, 0.9) !important;
+}
+
+/* 강제 색상 적용 */
+.light .text-white {
+  color: #1f2937 !important;
+}
+
+.dark .text-gray-900 {
+  color: #ffffff !important;
+}
+
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 포커스 스타일 개선 */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid theme("colors.blue.500");
+  outline-offset: 2px;
+}
+
+/* 테마 토글 버튼 커스텀 스타일 */
+.theme-toggle-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.3) 0%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.theme-toggle-button:hover::before,
+.theme-toggle-button.active::before {
+  width: 100px;
+  height: 100px;
+}
+
+/* 로딩 애니메이션 */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  border-top-color: theme("colors.blue.500");
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* 에러 메시지 스타일 */
+.error-message {
+  color: theme("colors.red.500");
+  background-color: theme("colors.red.50");
+  border: 1px solid theme("colors.red.200");
+  border-radius: theme("borderRadius.md");
+  padding: theme("spacing.2") theme("spacing.3");
+  font-size: theme("fontSize.sm");
+}
+
+.dark .error-message {
+  background-color: theme("colors.red.900 / 20%");
+  border-color: theme("colors.red.800");
+  color: theme("colors.red.300");
+}
+
+/* 성공 메시지 스타일 */
+.success-message {
+  color: theme("colors.green.500");
+  background-color: theme("colors.green.50");
+  border: 1px solid theme("colors.green.200");
+  border-radius: theme("borderRadius.md");
+  padding: theme("spacing.2") theme("spacing.3");
+  font-size: theme("fontSize.sm");
+}
+
+.dark .success-message {
+  background-color: theme("colors.green.900 / 20%");
+  border-color: theme("colors.green.800");
+  color: theme("colors.green.300");
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .theme-toggle-button {
+    padding: theme("spacing.1") theme("spacing.2");
+    font-size: theme("fontSize.xs");
+  }
+
+  .backdrop-blur-glass {
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
   }
 }
 
-.card {
-  padding: 2em;
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-.read-the-docs {
-  color: #888;
+/* 고대비 모드 지원 */
+@media (prefers-contrast: high) {
+  .backdrop-blur-glass {
+    background-color: var(--bg-primary);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* 다크 모드 선호도 감지 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* 인쇄 스타일 */
+@media print {
+  canvas,
+  .time-overlay,
+  .theme-toggle-button {
+    display: none !important;
+  }
+
+  .backdrop-blur-glass {
+    background-color: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }

@@ -7,6 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+
+# 환경변수 파일들
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 node_modules
 temp_legacy
 dist
