@@ -1,408 +1,538 @@
-// App.tsx - 테마 시스템 사용 예시
+import React, { useState } from "react";
+import { ThemeProvider } from "./components/SyncTheme/ThemeProvider";
+import { ThemeToggle } from "./components/SyncTheme/ThemeToggle";
+import { WebGLBackground } from "./components/SyncTheme/WebGLBackground";
+import { useTheme } from "./components/SyncTheme/useTheme";
 
-import {
-  ThemeProvider,
-  ThemeToggle,
-  useThemeContext,
-  // CompactThemeToggle,
-} from "./components/theme-system";
-import "./App.css";
+// 메인 컨텐츠 컴포넌트 (테마 컨텍스트 내부에서 사용)
+const MainContent: React.FC = () => {
+  const { currentTheme } = useTheme();
+  const [weatherAPIKey, setWeatherAPIKey] = useState<string>("");
+  const [showAPIKeyInput, setShowAPIKeyInput] = useState(false);
 
-/**
- * 메인 앱 컴포넌트
- * ThemeProvider로 전체 앱을 감싸서 어디서든 테마 정보에 접근할 수 있게 합니다
- */
-function App() {
   return (
-    <ThemeProvider
-      apiKey={process.env.REACT_APP_OPENWEATHER_API_KEY} // 환경변수에서 API 키 가져오기
-      defaultTheme="light" // 기본 테마 (선택사항)
-      updateInterval={10 * 60 * 1000} // 10분마다 날씨 업데이트 (선택사항)
-      enableGeolocation={true} // 위치 정보 사용 (선택사항)
-      enableWebGL={true} // WebGL 배경 사용 (선택사항)
+    <div
+      style={{
+        padding: "20px",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        position: "relative",
+        zIndex: 1,
+      }}
     >
-      <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <WelcomeSection />
-          <ThemeStatusCard />
-          <WeatherInfoCard />
-          <DemoContent />
-        </main>
-      </div>
-    </ThemeProvider>
-  );
-}
+      {/* WebGL 배경 */}
+      <WebGLBackground
+        enableParticles={true}
+        enableCelestialBodies={true}
+        enableClouds={true}
+      />
 
-/**
- * 헤더 컴포넌트 - 테마 토글 버튼 포함
- */
-const Header: React.FC = () => {
-  const { mode } = useThemeContext();
+      {/* 헤더 */}
+      <header style={{ marginBottom: "40px" }}>
+        <h1
+          style={{
+            fontSize: "3rem",
+            margin: "0 0 16px 0",
+            background: `linear-gradient(45deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+            filter: "drop-shadow(0 0 10px rgba(255,255,255,0.3))",
+          }}
+        >
+          🌟 Dynamic WebGL Theme System
+        </h1>
+        <p
+          style={{
+            fontSize: "1.2rem",
+            color: currentTheme.colors.text.secondary,
+            maxWidth: "600px",
+            lineHeight: 1.6,
+            textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+          }}
+        >
+          Experience real-time weather effects with WebGL! Watch the sun and
+          moon move, clouds drift by, and weather particles fall!
+        </p>
+      </header>
 
-  return (
-    <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* 로고/제목 */}
-          <div className="flex items-center space-x-3">
-            <div className="text-2xl">
-              {mode === "light" && "☀️"}
-              {mode === "dark" && "🌙"}
-              {mode === "sync" && "🌍"}
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              내 앱
-            </h1>
-          </div>
-
-          {/* 네비게이션 & 테마 토글 */}
-          <div className="flex items-center space-x-4">
-            <nav className="hidden md:flex space-x-4">
-              <a
-                href="#"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                홈
-              </a>
-              <a
-                href="#"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                소개
-              </a>
-              <a
-                href="#"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                연락처
-              </a>
-            </nav>
-
-            {/* 데스크톱에서는 기본 토글, 모바일에서는 컴팩트 토글 */}
-            <div className="hidden md:block">
-              <ThemeToggle size="md" />
-            </div>
-            <div className="md:hidden">{/* <CompactThemeToggle /> */}</div>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-};
-
-/**
- * 환영 섹션 - 테마에 따라 다른 메시지 표시
- */
-const WelcomeSection: React.FC = () => {
-  const { mode, isDarkMode, timeOfDay, weatherCondition } = useThemeContext();
-
-  const getWelcomeMessage = () => {
-    if (mode === "sync") {
-      if (timeOfDay === "dawn") return "좋은 새벽이에요!";
-      if (timeOfDay === "day") return "좋은 하루 보내세요!";
-      if (timeOfDay === "dusk") return "아름다운 저녁이네요!";
-      if (timeOfDay === "night") return "편안한 밤 되세요!";
-    }
-
-    return isDarkMode ? "어두운 테마로 편안하게!" : "밝은 테마로 활기차게!";
-  };
-
-  const getWeatherEmoji = () => {
-    switch (weatherCondition) {
-      case "clear":
-        return "☀️";
-      case "clouds":
-        return "☁️";
-      case "rain":
-        return "🌧️";
-      case "snow":
-        return "❄️";
-      case "thunderstorm":
-        return "⛈️";
-      case "drizzle":
-        return "🌦️";
-      case "mist":
-      case "fog":
-        return "🌫️";
-      default:
-        return "🌤️";
-    }
-  };
-
-  return (
-    <section className="text-center mb-12">
-      <div className="max-w-2xl mx-auto">
-        <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          {getWelcomeMessage()}
+      {/* Weather API 설정 */}
+      <div
+        style={{
+          background: `rgba(255, 255, 255, 0.1)`,
+          backdropFilter: "blur(10px)",
+          border: `2px solid ${currentTheme.colors.accent}`,
+          borderRadius: "20px",
+          padding: "20px",
+          marginBottom: "30px",
+          maxWidth: "500px",
+          width: "100%",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+        }}
+      >
+        <h2
+          style={{
+            margin: "0 0 15px 0",
+            color: currentTheme.colors.text.primary,
+            fontSize: "1.3rem",
+          }}
+        >
+          🌍 Real Weather Integration
         </h2>
 
-        <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-          현재 <strong>{mode}</strong> 모드로 설정되어 있습니다.
-          {mode === "sync" && (
-            <>
-              <br />
-              지금은 <strong>{timeOfDay}</strong> 시간대이고, 날씨는{" "}
-              <strong>{weatherCondition}</strong> {getWeatherEmoji()} 입니다.
-            </>
-          )}
-        </p>
-
-        <div className="inline-flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            테마를 변경해보세요:
-          </span>
-          <ThemeToggle size="sm" simple />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-/**
- * 테마 상태를 보여주는 카드
- */
-const ThemeStatusCard: React.FC = () => {
-  const { mode, isDarkMode, isLoading, error } = useThemeContext();
-
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-        현재 테마 상태
-      </h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="text-2xl mb-2">
-            {mode === "light" && "☀️"}
-            {mode === "dark" && "🌙"}
-            {mode === "sync" && "🌍"}
-          </div>
-          <div className="font-medium text-gray-900 dark:text-white">
-            {mode === "light" && "라이트 모드"}
-            {mode === "dark" && "다크 모드"}
-            {mode === "sync" && "싱크 모드"}
-          </div>
-        </div>
-
-        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="text-2xl mb-2">{isDarkMode ? "🌚" : "🌞"}</div>
-          <div className="font-medium text-gray-900 dark:text-white">
-            {isDarkMode ? "다크 UI" : "라이트 UI"}
-          </div>
-        </div>
-
-        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="text-2xl mb-2">
-            {isLoading ? "⏳" : error ? "❌" : "✅"}
-          </div>
-          <div className="font-medium text-gray-900 dark:text-white">
-            {isLoading ? "로딩 중" : error ? "오류 발생" : "정상"}
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
-          <p className="text-sm text-red-700 dark:text-red-400">
-            <strong>오류:</strong> {error}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * 날씨 정보를 보여주는 카드 (싱크 모드에서만 표시)
- */
-const WeatherInfoCard: React.FC = () => {
-  const { mode, weatherData, weatherCondition, timeOfDay, isLoading } =
-    useThemeContext();
-
-  if (mode !== "sync") return null;
-
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-        실시간 날씨 정보
-      </h3>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-600 dark:text-gray-400">
-            날씨 정보를 가져오는 중...
-          </span>
-        </div>
-      ) : weatherData ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <div className="text-3xl mb-2">🌍</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">위치</div>
-            <div className="font-medium text-gray-900 dark:text-white">
-              {weatherData.name}
-            </div>
-          </div>
-
-          <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <div className="text-3xl mb-2">🌡️</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">온도</div>
-            <div className="font-medium text-gray-900 dark:text-white">
-              {Math.round(weatherData.main.temp)}°C
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-500">
-              체감 {Math.round(weatherData.main.feels_like)}°C
-            </div>
-          </div>
-
-          <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-            <div className="text-3xl mb-2">
-              {timeOfDay === "dawn" && "🌅"}
-              {timeOfDay === "day" && "☀️"}
-              {timeOfDay === "dusk" && "🌇"}
-              {timeOfDay === "night" && "🌙"}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              시간대
-            </div>
-            <div className="font-medium text-gray-900 dark:text-white">
-              {timeOfDay === "dawn" && "새벽"}
-              {timeOfDay === "day" && "낮"}
-              {timeOfDay === "dusk" && "황혼"}
-              {timeOfDay === "night" && "밤"}
-            </div>
-          </div>
-
-          <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <div className="text-3xl mb-2">
-              {weatherCondition === "clear" && "☀️"}
-              {weatherCondition === "clouds" && "☁️"}
-              {weatherCondition === "rain" && "🌧️"}
-              {weatherCondition === "snow" && "❄️"}
-              {weatherCondition === "thunderstorm" && "⛈️"}
-              {weatherCondition === "drizzle" && "🌦️"}
-              {(weatherCondition === "mist" || weatherCondition === "fog") &&
-                "🌫️"}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">날씨</div>
-            <div className="font-medium text-gray-900 dark:text-white">
-              {weatherData.weather[0].description}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-500">
-              습도 {weatherData.main.humidity}%
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-          날씨 정보를 가져올 수 없습니다.
-          <br />
-          OpenWeather API 키를 확인해주세요.
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * 테마별 스타일을 보여주는 데모 컨텐츠
- */
-const DemoContent: React.FC = () => {
-  const { isDarkMode } = useThemeContext();
-
-  return (
-    <div className="space-y-8">
-      {/* 버튼 데모 */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          버튼 스타일 데모
-        </h3>
-
-        <div className="flex flex-wrap gap-4">
-          <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-            Primary
-          </button>
-          <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors">
-            Secondary
-          </button>
-          <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">
-            Success
-          </button>
-          <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
-            Danger
-          </button>
-        </div>
-      </div>
-
-      {/* 카드 데모 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3].map((num) => (
-          <div
-            key={num}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+        {!showAPIKeyInput ? (
+          <button
+            onClick={() => setShowAPIKeyInput(true)}
+            style={{
+              background: `linear-gradient(45deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`,
+              color: "white",
+              border: "none",
+              borderRadius: "12px",
+              padding: "12px 24px",
+              fontSize: "16px",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+            }}
           >
-            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xl mb-4">
-              {num}
-            </div>
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              카드 제목 {num}
-            </h4>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              테마에 따라 자동으로 색상이 변경되는 카드 컴포넌트입니다.
-              {isDarkMode
-                ? " 현재 다크 모드가 적용되어 있습니다."
-                : " 현재 라이트 모드가 적용되어 있습니다."}
+            🔑 Setup Weather API
+          </button>
+        ) : (
+          <div style={{ textAlign: "left" }}>
+            <p
+              style={{
+                margin: "0 0 10px 0",
+                fontSize: "14px",
+                color: currentTheme.colors.text.secondary,
+              }}
+            >
+              Get your free API key from{" "}
+              <a
+                href="https://openweathermap.org/api"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: currentTheme.colors.accent }}
+              >
+                OpenWeatherMap
+              </a>
             </p>
-            <button className="text-blue-500 hover:text-blue-600 font-medium transition-colors">
-              더 보기 →
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* 폼 데모 */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          폼 요소 데모
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              이름
-            </label>
             <input
               type="text"
-              placeholder="이름을 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Enter your OpenWeatherMap API key"
+              value={weatherAPIKey}
+              onChange={(e) => setWeatherAPIKey(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: `1px solid ${currentTheme.colors.accent}`,
+                borderRadius: "8px",
+                background: "rgba(255,255,255,0.1)",
+                color: currentTheme.colors.text.primary,
+                fontSize: "14px",
+                marginBottom: "10px",
+              }}
             />
+            <button
+              onClick={() => setShowAPIKeyInput(false)}
+              style={{
+                background: `linear-gradient(45deg, #27AE60, #2ECC71)`,
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                fontSize: "14px",
+                cursor: "pointer",
+              }}
+            >
+              ✅ Save
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 현재 테마 정보 카드 */}
+      <div
+        style={{
+          background: `rgba(255, 255, 255, 0.1)`,
+          backdropFilter: "blur(10px)",
+          border: `2px solid ${currentTheme.colors.accent}`,
+          borderRadius: "20px",
+          padding: "30px",
+          marginBottom: "40px",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+          maxWidth: "500px",
+          width: "100%",
+        }}
+      >
+        <h2
+          style={{
+            margin: "0 0 20px 0",
+            color: currentTheme.colors.text.primary,
+            fontSize: "1.8rem",
+          }}
+        >
+          Current Theme: {currentTheme.name}
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "20px",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: `rgba(255, 255, 255, 0.1)`,
+              padding: "15px",
+              borderRadius: "12px",
+              border: `1px solid ${currentTheme.colors.primary}`,
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", opacity: 0.8 }}>
+              Weather
+            </h3>
+            <div style={{ fontSize: "2rem" }}>
+              {getWeatherEmoji(currentTheme.weather)}
+            </div>
+            <p style={{ margin: "8px 0 0 0", textTransform: "capitalize" }}>
+              {currentTheme.weather}
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              이메일
-            </label>
-            <input
-              type="email"
-              placeholder="email@example.com"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            />
+          <div
+            style={{
+              background: `rgba(255, 255, 255, 0.1)`,
+              padding: "15px",
+              borderRadius: "12px",
+              border: `1px solid ${currentTheme.colors.secondary}`,
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", opacity: 0.8 }}>
+              Time
+            </h3>
+            <div style={{ fontSize: "2rem" }}>
+              {getTimeEmoji(currentTheme.timeOfDay)}
+            </div>
+            <p style={{ margin: "8px 0 0 0", textTransform: "capitalize" }}>
+              {currentTheme.timeOfDay}
+            </p>
           </div>
+        </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              메시지
-            </label>
-            <textarea
-              rows={4}
-              placeholder="메시지를 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-            />
+        {/* WebGL 효과 정보 */}
+        <div style={{ marginTop: "20px" }}>
+          <h3 style={{ margin: "0 0 12px 0", fontSize: "1rem", opacity: 0.8 }}>
+            Active WebGL Effects
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              fontSize: "12px",
+            }}
+          >
+            <div
+              style={{
+                background: `rgba(255, 255, 255, 0.1)`,
+                padding: "6px 12px",
+                borderRadius: "20px",
+              }}
+            >
+              {currentTheme.timeOfDay === "night" ||
+              currentTheme.timeOfDay === "dawn"
+                ? "⭐ Stars"
+                : "☀️ Sun"}
+            </div>
+            <div
+              style={{
+                background: `rgba(255, 255, 255, 0.1)`,
+                padding: "6px 12px",
+                borderRadius: "20px",
+              }}
+            >
+              ☁️ Clouds
+            </div>
+            {currentTheme.effects?.particles && (
+              <div
+                style={{
+                  background: `rgba(255, 255, 255, 0.1)`,
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                }}
+              >
+                {currentTheme.weather === "rainy"
+                  ? "🌧️ Rain"
+                  : currentTheme.weather === "snowy"
+                  ? "❄️ Snow"
+                  : currentTheme.weather === "stormy"
+                  ? "⛈️ Storm"
+                  : "✨ Particles"}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* 기능 소개 카드들 */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gap: "20px",
+          marginBottom: "40px",
+          width: "100%",
+          maxWidth: "800px",
+        }}
+      >
+        <FeatureCard
+          emoji="🌍"
+          title="Real Weather API"
+          content="Connect with OpenWeatherMap to get real-time weather data and automatically sync your theme with actual conditions."
+        />
+        <FeatureCard
+          emoji="🎬"
+          title="WebGL Effects"
+          content="Watch the sun and moon move across the sky in real-time, with animated clouds and weather particles."
+        />
+        <FeatureCard
+          emoji="🤖"
+          title="Auto Mode"
+          content="Enable auto mode to automatically update the time-of-day theme based on your current local time."
+        />
+      </div>
+
+      {/* 빠른 테스트 섹션 */}
+      <div
+        style={{
+          background: `rgba(255, 255, 255, 0.05)`,
+          backdropFilter: "blur(5px)",
+          border: `1px solid ${currentTheme.colors.accent}`,
+          borderRadius: "16px",
+          padding: "30px",
+          maxWidth: "600px",
+          width: "100%",
+          marginBottom: "40px",
+        }}
+      >
+        <h2 style={{ margin: "0 0 20px 0", textAlign: "center" }}>
+          🧪 Quick Theme Tests
+        </h2>
+        <p
+          style={{
+            textAlign: "center",
+            marginBottom: "20px",
+            color: currentTheme.colors.text.secondary,
+          }}
+        >
+          Try these dramatic combinations to see WebGL effects in action!
+        </p>
+
+        <QuickTestButtons />
+      </div>
+
+      {/* 푸터 */}
+      <footer
+        style={{
+          marginTop: "60px",
+          padding: "20px",
+          textAlign: "center",
+          color: currentTheme.colors.text.secondary,
+          borderTop: `1px solid ${currentTheme.colors.accent}`,
+        }}
+      >
+        <p>Built with React + TypeScript + Three.js WebGL</p>
+        <p style={{ fontSize: "0.9rem", opacity: 0.7, marginTop: "8px" }}>
+          Real-time celestial movement • Weather particles • Dynamic lighting
+        </p>
+      </footer>
+
+      {/* 플로팅 컨트롤 패널 */}
+      <ThemeToggle
+        variant="floating"
+        showAutoMode={true}
+        showWeatherAPI={true}
+        weatherAPIKey={weatherAPIKey || undefined}
+      />
     </div>
+  );
+};
+
+// 기능 카드 컴포넌트
+const FeatureCard: React.FC<{
+  emoji: string;
+  title: string;
+  content: string;
+}> = ({ emoji, title, content }) => {
+  const { currentTheme } = useTheme();
+
+  return (
+    <div
+      style={{
+        background: `rgba(255, 255, 255, 0.1)`,
+        backdropFilter: "blur(10px)",
+        border: `1px solid ${currentTheme.colors.accent}`,
+        borderRadius: "16px",
+        padding: "20px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
+        transition: "transform 0.3s ease",
+      }}
+    >
+      <div style={{ fontSize: "2rem", marginBottom: "12px" }}>{emoji}</div>
+      <h3
+        style={{
+          margin: "0 0 12px 0",
+          color: currentTheme.colors.text.primary,
+          fontSize: "1.2rem",
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        style={{
+          margin: 0,
+          color: currentTheme.colors.text.secondary,
+          lineHeight: 1.5,
+        }}
+      >
+        {content}
+      </p>
+    </div>
+  );
+};
+
+// 빠른 테스트 버튼들
+const QuickTestButtons: React.FC = () => {
+  const { setTheme } = useTheme();
+
+  const quickTests = [
+    {
+      weather: "stormy" as const,
+      time: "night" as const,
+      emoji: "⛈️🌙",
+      label: "Stormy Night",
+    },
+    {
+      weather: "snowy" as const,
+      time: "evening" as const,
+      emoji: "❄️🌇",
+      label: "Snowy Evening",
+    },
+    {
+      weather: "rainy" as const,
+      time: "dawn" as const,
+      emoji: "🌧️🌅",
+      label: "Rainy Dawn",
+    },
+    {
+      weather: "sunny" as const,
+      time: "afternoon" as const,
+      emoji: "☀️🏙️",
+      label: "Sunny Day",
+    },
+    {
+      weather: "foggy" as const,
+      time: "morning" as const,
+      emoji: "🌫️🌄",
+      label: "Foggy Morning",
+    },
+    {
+      weather: "cloudy" as const,
+      time: "night" as const,
+      emoji: "☁️🌙",
+      label: "Cloudy Night",
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+        gap: "12px",
+      }}
+    >
+      {quickTests.map((test, index) => (
+        <button
+          key={index}
+          onClick={() => setTheme(test.weather, test.time)}
+          style={{
+            padding: "14px 10px",
+            border: "none",
+            borderRadius: "12px",
+            background: "rgba(255, 255, 255, 0.15)",
+            backdropFilter: "blur(5px)",
+            color: "inherit",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            transition: "all 0.3s ease",
+            textAlign: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-3px)";
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.2)";
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+          }}
+        >
+          <div style={{ fontSize: "1.8rem", marginBottom: "6px" }}>
+            {test.emoji}
+          </div>
+          {test.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// 유틸리티 함수들
+const getWeatherEmoji = (weather: string): string => {
+  const emojis: Record<string, string> = {
+    sunny: "☀️",
+    cloudy: "☁️",
+    rainy: "🌧️",
+    snowy: "❄️",
+    stormy: "⛈️",
+    foggy: "🌫️",
+  };
+  return emojis[weather] || "🌤️";
+};
+
+const getTimeEmoji = (time: string): string => {
+  const emojis: Record<string, string> = {
+    dawn: "🌅",
+    morning: "🌄",
+    afternoon: "☀️",
+    evening: "🌇",
+    night: "🌙",
+  };
+  return emojis[time] || "🕐";
+};
+
+// 메인 App 컴포넌트
+const App: React.FC = () => {
+  return (
+    <ThemeProvider
+      defaultWeather="sunny"
+      defaultTimeOfDay="morning"
+      persistTheme={true}
+      autoInitialize={true}
+    >
+      <MainContent />
+    </ThemeProvider>
   );
 };
 
