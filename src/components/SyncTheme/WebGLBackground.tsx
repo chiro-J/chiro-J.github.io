@@ -124,28 +124,28 @@ export const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
 
     switch (weather) {
       case "rainy":
-        particleCount = 1500;
+        particleCount = 100;
         particleSize = 0.5;
         particleColor = 0x4a90e2;
-        fallSpeed = -2.0;
+        fallSpeed = -2.2;
         break;
       case "snowy":
-        particleCount = 800;
-        particleSize = 2.0;
+        particleCount = 500;
+        particleSize = 1.5;
         particleColor = 0xffffff;
-        fallSpeed = -0.3;
+        fallSpeed = -0.125;
         break;
       case "stormy":
-        particleCount = 2000;
-        particleSize = 0.8;
+        particleCount = 300;
+        particleSize = 0.5;
         particleColor = 0x6a5acd;
-        fallSpeed = -3.0;
+        fallSpeed = -2.0;
         break;
       case "foggy":
-        particleCount = 400;
-        particleSize = 4.0;
+        particleCount = 200;
+        particleSize = 12.0;
         particleColor = 0xcccccc;
-        fallSpeed = -0.1;
+        fallSpeed = -0.025;
         break;
       default:
         return null;
