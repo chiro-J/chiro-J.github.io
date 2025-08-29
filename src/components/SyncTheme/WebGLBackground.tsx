@@ -250,11 +250,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     const getCloudColor = () => {
       switch (currentTheme.weather) {
         case "stormy":
-          return "rgba(80, 80, 80, 0.8)";
+          return "rgba(80, 80, 80, 0.888)";
         case "foggy":
-          return "rgba(200, 200, 200, 0.88)";
+          return "rgba(200, 200, 200, 0.888)";
         case "rainy":
-          return "rgba(160, 160, 160, 0.8)";
+          return "rgba(160, 160, 160, 0.888)";
         default:
           return currentTheme.timeOfDay === "night"
             ? "rgba(200, 200, 220, 0.6)"
@@ -303,7 +303,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         particle.x += particle.vx;
         if (particle.x > width + 50) particle.x = -50;
 
-        ctx.fillStyle = "rgba(220, 220, 220, 0.66)";
+        ctx.fillStyle = "rgba(220, 220, 220, 0.111)";
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
@@ -328,11 +328,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
           ctx.strokeStyle =
             weather === "stormy"
               ? "rgba(120, 120, 180, 0.8)"
-              : "rgba(100, 150, 200, 0.7)";
+              : "rgba(220, 220, 240, 0.9)";
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
-          ctx.lineTo(particle.x - 3, particle.y - 8); // / 모양
+          ctx.lineTo(particle.x - 25, particle.y - 75); // / 모양
           ctx.stroke();
         }
       }
@@ -433,18 +433,18 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
             window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4,
           vx: Math.random() * 0.3 + 0.1, // 가로로만 움직임
           vy: 0,
-          size: Math.random() * 80 + 4,
+          size: Math.random() * 500 + 4,
         });
       } else {
         newParticles.push({
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          vx: Math.random() * 0.5 - 0.25, // 약간의 좌우 흔들림
+          vx: Math.random() * 0.25 - 0.0001, // 약간의 좌우 흔들림
           vy:
             currentTheme.weather === "snowy"
-              ? Math.random() * 0.8 + 0.3 // 눈은 천천히
-              : Math.random() * 2 + 1.5, // 비는 빠르게
-          size: Math.random() * 2 + 1,
+              ? Math.random() * 2.5 + 2.5 // 눈은 천천히
+              : Math.random() * 1.5 + 15, // 비는 빠르게
+          size: Math.random() * 5 + 3,
         });
       }
     }
