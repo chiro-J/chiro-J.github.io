@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 import { ThemeProvider } from "./components/SyncTheme/ThemeProvider";
 import { ThemeToggle } from "./components/SyncTheme/ThemeToggle";
 import { WebGLBackground } from "./components/SyncTheme/WebGLBackground";
 import { useTheme } from "./components/SyncTheme/useTheme";
+import type {
+  WeatherType,
+  TimeOfDay,
+} from "./components/SyncTheme/theme.types";
 
 // 메인 컨텐츠 컴포넌트 (테마 컨텍스트 내부에서 사용)
 const MainContent: React.FC = () => {
   const { currentTheme } = useTheme();
-  const [weatherAPIKey, setWeatherAPIKey] = useState<string>("");
-  const [showAPIKeyInput, setShowAPIKeyInput] = useState(false);
 
   return (
     <div
@@ -24,28 +26,29 @@ const MainContent: React.FC = () => {
         zIndex: 1,
       }}
     >
-      {/* WebGL 배경 */}
+      {/* Enhanced WebGL Background */}
       <WebGLBackground
         enableParticles={true}
         enableCelestialBodies={true}
         enableClouds={true}
       />
 
-      {/* 헤더 */}
+      {/* 메인 헤더 */}
       <header style={{ marginBottom: "40px" }}>
         <h1
           style={{
-            fontSize: "3rem",
+            fontSize: "clamp(2rem, 4vw, 3.5rem)",
             margin: "0 0 16px 0",
-            background: `linear-gradient(45deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`,
+            background: `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary}, ${currentTheme.colors.accent})`,
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
-            filter: "drop-shadow(0 0 10px rgba(255,255,255,0.3))",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+            fontWeight: "700",
+            letterSpacing: "-0.02em",
           }}
         >
-          🌟 Dynamic WebGL Theme System
+          ✨ Next-Gen Weather Studio
         </h1>
         <p
           style={{
@@ -53,130 +56,39 @@ const MainContent: React.FC = () => {
             color: currentTheme.colors.text.secondary,
             maxWidth: "600px",
             lineHeight: 1.6,
-            textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+            textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+            fontWeight: "300",
           }}
         >
-          Experience real-time weather effects with WebGL! Watch the sun and
-          moon move, clouds drift by, and weather particles fall!
+          Experience photorealistic weather effects with smart automation. Watch
+          celestial bodies move in real-time with your location's weather!
         </p>
       </header>
-
-      {/* Weather API 설정 */}
-      <div
-        style={{
-          background: `rgba(255, 255, 255, 0.1)`,
-          backdropFilter: "blur(10px)",
-          border: `2px solid ${currentTheme.colors.accent}`,
-          borderRadius: "20px",
-          padding: "20px",
-          marginBottom: "30px",
-          maxWidth: "500px",
-          width: "100%",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
-        }}
-      >
-        <h2
-          style={{
-            margin: "0 0 15px 0",
-            color: currentTheme.colors.text.primary,
-            fontSize: "1.3rem",
-          }}
-        >
-          🌍 Real Weather Integration
-        </h2>
-
-        {!showAPIKeyInput ? (
-          <button
-            onClick={() => setShowAPIKeyInput(true)}
-            style={{
-              background: `linear-gradient(45deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`,
-              color: "white",
-              border: "none",
-              borderRadius: "12px",
-              padding: "12px 24px",
-              fontSize: "16px",
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-            }}
-          >
-            🔑 Setup Weather API
-          </button>
-        ) : (
-          <div style={{ textAlign: "left" }}>
-            <p
-              style={{
-                margin: "0 0 10px 0",
-                fontSize: "14px",
-                color: currentTheme.colors.text.secondary,
-              }}
-            >
-              Get your free API key from{" "}
-              <a
-                href="https://openweathermap.org/api"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: currentTheme.colors.accent }}
-              >
-                OpenWeatherMap
-              </a>
-            </p>
-            <input
-              type="text"
-              placeholder="Enter your OpenWeatherMap API key"
-              value={weatherAPIKey}
-              onChange={(e) => setWeatherAPIKey(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                border: `1px solid ${currentTheme.colors.accent}`,
-                borderRadius: "8px",
-                background: "rgba(255,255,255,0.1)",
-                color: currentTheme.colors.text.primary,
-                fontSize: "14px",
-                marginBottom: "10px",
-              }}
-            />
-            <button
-              onClick={() => setShowAPIKeyInput(false)}
-              style={{
-                background: `linear-gradient(45deg, #27AE60, #2ECC71)`,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "8px 16px",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-            >
-              ✅ Save
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* 현재 테마 정보 카드 */}
       <div
         style={{
-          background: `rgba(255, 255, 255, 0.1)`,
-          backdropFilter: "blur(10px)",
-          border: `2px solid ${currentTheme.colors.accent}`,
-          borderRadius: "20px",
-          padding: "30px",
+          background: `rgba(0, 0, 0, 0.15)`,
+          backdropFilter: "blur(20px)",
+          border: `1px solid rgba(255, 255, 255, 0.2)`,
+          borderRadius: "24px",
+          padding: "32px",
           marginBottom: "40px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
           maxWidth: "500px",
           width: "100%",
+          transition: "all 0.3s ease",
         }}
       >
         <h2
           style={{
-            margin: "0 0 20px 0",
+            margin: "0 0 24px 0",
             color: currentTheme.colors.text.primary,
             fontSize: "1.8rem",
+            fontWeight: "600",
           }}
         >
-          Current Theme: {currentTheme.name}
+          Current Experience: {currentTheme.name}
         </h2>
 
         <div
@@ -184,214 +96,299 @@ const MainContent: React.FC = () => {
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: "20px",
-            marginBottom: "20px",
+            marginBottom: "24px",
           }}
         >
           <div
             style={{
-              background: `rgba(255, 255, 255, 0.1)`,
-              padding: "15px",
-              borderRadius: "12px",
-              border: `1px solid ${currentTheme.colors.primary}`,
+              background: `rgba(255, 255, 255, 0.08)`,
+              padding: "20px",
+              borderRadius: "16px",
+              border: `1px solid rgba(255, 255, 255, 0.1)`,
+              transition: "transform 0.2s ease",
             }}
           >
-            <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", opacity: 0.8 }}>
-              Weather
+            <h3
+              style={{
+                margin: "0 0 12px 0",
+                fontSize: "1rem",
+                opacity: 0.8,
+                fontWeight: "500",
+              }}
+            >
+              Weather Atmosphere
             </h3>
-            <div style={{ fontSize: "2rem" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>
               {getWeatherEmoji(currentTheme.weather)}
             </div>
-            <p style={{ margin: "8px 0 0 0", textTransform: "capitalize" }}>
+            <p
+              style={{
+                margin: "0",
+                textTransform: "capitalize",
+                fontSize: "1.1rem",
+                fontWeight: "500",
+              }}
+            >
               {currentTheme.weather}
             </p>
           </div>
 
           <div
             style={{
-              background: `rgba(255, 255, 255, 0.1)`,
-              padding: "15px",
-              borderRadius: "12px",
-              border: `1px solid ${currentTheme.colors.secondary}`,
+              background: `rgba(255, 255, 255, 0.08)`,
+              padding: "20px",
+              borderRadius: "16px",
+              border: `1px solid rgba(255, 255, 255, 0.1)`,
+              transition: "transform 0.2s ease",
             }}
           >
-            <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", opacity: 0.8 }}>
-              Time
+            <h3
+              style={{
+                margin: "0 0 12px 0",
+                fontSize: "1rem",
+                opacity: 0.8,
+                fontWeight: "500",
+              }}
+            >
+              Celestial Time
             </h3>
-            <div style={{ fontSize: "2rem" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>
               {getTimeEmoji(currentTheme.timeOfDay)}
             </div>
-            <p style={{ margin: "8px 0 0 0", textTransform: "capitalize" }}>
+            <p
+              style={{
+                margin: "0",
+                textTransform: "capitalize",
+                fontSize: "1.1rem",
+                fontWeight: "500",
+              }}
+            >
               {currentTheme.timeOfDay}
             </p>
           </div>
         </div>
 
-        {/* WebGL 효과 정보 */}
+        {/* Enhanced WebGL 효과 정보 */}
         <div style={{ marginTop: "20px" }}>
-          <h3 style={{ margin: "0 0 12px 0", fontSize: "1rem", opacity: 0.8 }}>
-            Active WebGL Effects
+          <h3
+            style={{
+              margin: "0 0 16px 0",
+              fontSize: "1rem",
+              opacity: 0.8,
+              fontWeight: "500",
+            }}
+          >
+            Active Visual Effects
           </h3>
           <div
             style={{
               display: "flex",
-              gap: "12px",
+              gap: "8px",
               justifyContent: "center",
               flexWrap: "wrap",
               fontSize: "12px",
             }}
           >
-            <div
-              style={{
-                background: `rgba(255, 255, 255, 0.1)`,
-                padding: "6px 12px",
-                borderRadius: "20px",
-              }}
-            >
-              {currentTheme.timeOfDay === "night" ||
-              currentTheme.timeOfDay === "dawn"
-                ? "⭐ Stars"
-                : "☀️ Sun"}
-            </div>
-            <div
-              style={{
-                background: `rgba(255, 255, 255, 0.1)`,
-                padding: "6px 12px",
-                borderRadius: "20px",
-              }}
-            >
-              ☁️ Clouds
-            </div>
+            <EffectBadge
+              icon={
+                currentTheme.timeOfDay === "night" ||
+                currentTheme.timeOfDay === "dawn"
+                  ? "🌙⭐"
+                  : "☀️"
+              }
+              text={
+                currentTheme.timeOfDay === "night" ||
+                currentTheme.timeOfDay === "dawn"
+                  ? "Moon & Twinkling Stars"
+                  : "Radiant Sun"
+              }
+            />
+            <EffectBadge icon="☁️" text="Volumetric Clouds" />
             {currentTheme.effects?.particles && (
-              <div
-                style={{
-                  background: `rgba(255, 255, 255, 0.1)`,
-                  padding: "6px 12px",
-                  borderRadius: "20px",
-                }}
-              >
-                {currentTheme.weather === "rainy"
-                  ? "🌧️ Rain"
-                  : currentTheme.weather === "snowy"
-                  ? "❄️ Snow"
-                  : currentTheme.weather === "stormy"
-                  ? "⛈️ Storm"
-                  : "✨ Particles"}
-              </div>
+              <EffectBadge
+                icon={getParticleIcon(currentTheme.weather)}
+                text={getParticleText(currentTheme.weather)}
+              />
             )}
+            <EffectBadge icon="🌈" text="Dynamic Sky Gradient" />
           </div>
         </div>
       </div>
 
-      {/* 기능 소개 카드들 */}
+      {/* Enhanced 기능 소개 */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: "20px",
-          marginBottom: "40px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "24px",
+          marginBottom: "50px",
           width: "100%",
-          maxWidth: "800px",
+          maxWidth: "900px",
         }}
       >
         <FeatureCard
-          emoji="🌍"
-          title="Real Weather API"
-          content="Connect with OpenWeatherMap to get real-time weather data and automatically sync your theme with actual conditions."
+          emoji="🤖"
+          title="Smart Automation"
+          content="AI-powered system that automatically syncs with your real-time location, weather conditions, and local time for perfect atmospheric matching."
+          gradient={["#10B981", "#059669"]}
         />
         <FeatureCard
           emoji="🎬"
-          title="WebGL Effects"
-          content="Watch the sun and moon move across the sky in real-time, with animated clouds and weather particles."
+          title="Cinematic Effects"
+          content="Hollywood-grade WebGL rendering with realistic sun/moon movement, twinkling stars, volumetric clouds, and physics-based weather particles."
+          gradient={["#8B5CF6", "#7C3AED"]}
         />
         <FeatureCard
-          emoji="🤖"
-          title="Auto Mode"
-          content="Enable auto mode to automatically update the time-of-day theme based on your current local time."
+          emoji="⚡"
+          title="Performance Optimized"
+          content="60FPS smooth animations with intelligent LOD system, memory management, and cross-device compatibility for seamless experience."
+          gradient={["#F59E0B", "#D97706"]}
         />
       </div>
 
-      {/* 빠른 테스트 섹션 */}
+      {/* Premium 테스트 섹션 */}
       <div
         style={{
-          background: `rgba(255, 255, 255, 0.05)`,
-          backdropFilter: "blur(5px)",
-          border: `1px solid ${currentTheme.colors.accent}`,
-          borderRadius: "16px",
-          padding: "30px",
-          maxWidth: "600px",
+          background: `rgba(0, 0, 0, 0.1)`,
+          backdropFilter: "blur(15px)",
+          border: `1px solid rgba(255, 255, 255, 0.15)`,
+          borderRadius: "20px",
+          padding: "36px",
+          maxWidth: "700px",
           width: "100%",
-          marginBottom: "40px",
+          marginBottom: "50px",
         }}
       >
-        <h2 style={{ margin: "0 0 20px 0", textAlign: "center" }}>
-          🧪 Quick Theme Tests
+        <h2
+          style={{
+            margin: "0 0 16px 0",
+            textAlign: "center",
+            fontSize: "1.8rem",
+            fontWeight: "600",
+          }}
+        >
+          🧪 Experience Gallery
         </h2>
         <p
           style={{
             textAlign: "center",
-            marginBottom: "20px",
+            marginBottom: "24px",
             color: currentTheme.colors.text.secondary,
+            fontSize: "1.1rem",
+            fontWeight: "300",
           }}
         >
-          Try these dramatic combinations to see WebGL effects in action!
+          Discover stunning combinations of weather and celestial positioning.
+          Each preset showcases different visual effects.
         </p>
 
         <QuickTestButtons />
       </div>
 
-      {/* 푸터 */}
+      {/* 정보 푸터 */}
       <footer
         style={{
           marginTop: "60px",
-          padding: "20px",
+          padding: "24px",
           textAlign: "center",
           color: currentTheme.colors.text.secondary,
-          borderTop: `1px solid ${currentTheme.colors.accent}`,
+          borderTop: `1px solid rgba(255, 255, 255, 0.1)`,
+          width: "100%",
+          maxWidth: "800px",
         }}
       >
-        <p>Built with React + TypeScript + Three.js WebGL</p>
-        <p style={{ fontSize: "0.9rem", opacity: 0.7, marginTop: "8px" }}>
-          Real-time celestial movement • Weather particles • Dynamic lighting
+        <p
+          style={{ fontSize: "1.1rem", fontWeight: "500", marginBottom: "8px" }}
+        >
+          Powered by React + TypeScript + Three.js WebGL + OpenWeather API
+        </p>
+        <p style={{ fontSize: "0.9rem", opacity: 0.7 }}>
+          🌍 Real-time location sync • ⚡ 60fps performance • 🎨 30+ dynamic
+          themes
         </p>
       </footer>
 
-      {/* 플로팅 컨트롤 패널 */}
-      <ThemeToggle
-        variant="floating"
-        showAutoMode={true}
-        showWeatherAPI={true}
-        weatherAPIKey={weatherAPIKey || undefined}
-      />
+      {/* Floating Theme Control */}
+      <ThemeToggle variant="floating" />
     </div>
   );
 };
 
-// 기능 카드 컴포넌트
+// 개선된 효과 뱃지 컴포넌트
+const EffectBadge: React.FC<{ icon: string; text: string }> = ({
+  icon,
+  text,
+}) => (
+  <div
+    style={{
+      background: `rgba(255, 255, 255, 0.15)`,
+      padding: "8px 12px",
+      borderRadius: "20px",
+      fontSize: "12px",
+      fontWeight: "500",
+      backdropFilter: "blur(10px)",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    }}
+  >
+    <span>{icon}</span>
+    <span>{text}</span>
+  </div>
+);
+
+// Premium 기능 카드
 const FeatureCard: React.FC<{
   emoji: string;
   title: string;
   content: string;
-}> = ({ emoji, title, content }) => {
+  gradient: [string, string];
+}> = ({ emoji, title, content, gradient }) => {
   const { currentTheme } = useTheme();
 
   return (
     <div
       style={{
-        background: `rgba(255, 255, 255, 0.1)`,
-        backdropFilter: "blur(10px)",
-        border: `1px solid ${currentTheme.colors.accent}`,
-        borderRadius: "16px",
-        padding: "20px",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
-        transition: "transform 0.3s ease",
+        background: `rgba(0, 0, 0, 0.2)`,
+        backdropFilter: "blur(20px)",
+        border: `1px solid rgba(255, 255, 255, 0.15)`,
+        borderRadius: "20px",
+        padding: "28px",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+        transition: "all 0.3s ease",
+        position: "relative",
+        overflow: "hidden",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-8px)";
+        e.currentTarget.style.boxShadow = "0 16px 48px rgba(0, 0, 0, 0.3)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.2)";
       }}
     >
-      <div style={{ fontSize: "2rem", marginBottom: "12px" }}>{emoji}</div>
+      {/* 그라데이션 오버레이 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "4px",
+          background: `linear-gradient(90deg, ${gradient[0]}, ${gradient[1]})`,
+          borderRadius: "20px 20px 0 0",
+        }}
+      />
+
+      <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>{emoji}</div>
       <h3
         style={{
-          margin: "0 0 12px 0",
+          margin: "0 0 16px 0",
           color: currentTheme.colors.text.primary,
-          fontSize: "1.2rem",
+          fontSize: "1.3rem",
+          fontWeight: "600",
         }}
       >
         {title}
@@ -400,7 +397,8 @@ const FeatureCard: React.FC<{
         style={{
           margin: 0,
           color: currentTheme.colors.text.secondary,
-          lineHeight: 1.5,
+          lineHeight: 1.6,
+          fontSize: "1rem",
         }}
       >
         {content}
@@ -409,46 +407,65 @@ const FeatureCard: React.FC<{
   );
 };
 
-// 빠른 테스트 버튼들
+// Premium 테스트 버튼들
 const QuickTestButtons: React.FC = () => {
   const { setTheme } = useTheme();
 
-  const quickTests = [
+  const quickTests: Array<{
+    weather: WeatherType;
+    time: TimeOfDay;
+    emoji: string;
+    label: string;
+    desc: string;
+    gradient: [string, string];
+  }> = [
     {
-      weather: "stormy" as const,
-      time: "night" as const,
-      emoji: "⛈️🌙",
-      label: "Stormy Night",
+      weather: "sunny",
+      time: "dawn",
+      emoji: "🌅☀️",
+      label: "Golden Dawn",
+      desc: "Radiant sunrise with warm rays",
+      gradient: ["#FF8C42", "#FFD700"],
     },
     {
-      weather: "snowy" as const,
-      time: "evening" as const,
-      emoji: "❄️🌇",
-      label: "Snowy Evening",
-    },
-    {
-      weather: "rainy" as const,
-      time: "dawn" as const,
-      emoji: "🌧️🌅",
-      label: "Rainy Dawn",
-    },
-    {
-      weather: "sunny" as const,
-      time: "afternoon" as const,
+      weather: "sunny",
+      time: "afternoon",
       emoji: "☀️🏙️",
-      label: "Sunny Day",
+      label: "Blazing Noon",
+      desc: "Brilliant midday sun overhead",
+      gradient: ["#FFD700", "#FFA500"],
     },
     {
-      weather: "foggy" as const,
-      time: "morning" as const,
+      weather: "rainy",
+      time: "night",
+      emoji: "🌧️🌙",
+      label: "Moonlit Storm",
+      desc: "Ethereal moonbeams through rain",
+      gradient: ["#4A90E2", "#87CEEB"],
+    },
+    {
+      weather: "snowy",
+      time: "evening",
+      emoji: "❄️🌇",
+      label: "Winter Sunset",
+      desc: "Crystalline snowfall at dusk",
+      gradient: ["#E6E6FA", "#FFB6C1"],
+    },
+    {
+      weather: "stormy",
+      time: "night",
+      emoji: "⛈️🌙",
+      label: "Electric Night",
+      desc: "Dramatic storm under moonlight",
+      gradient: ["#6A5ACD", "#483D8B"],
+    },
+    {
+      weather: "foggy",
+      time: "morning",
       emoji: "🌫️🌄",
-      label: "Foggy Morning",
-    },
-    {
-      weather: "cloudy" as const,
-      time: "night" as const,
-      emoji: "☁️🌙",
-      label: "Cloudy Night",
+      label: "Mystic Dawn",
+      desc: "Mysterious fog at sunrise",
+      gradient: ["#E6E6FA", "#D3D3D3"],
     },
   ];
 
@@ -456,8 +473,8 @@ const QuickTestButtons: React.FC = () => {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-        gap: "12px",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: "16px",
       }}
     >
       {quickTests.map((test, index) => (
@@ -465,33 +482,41 @@ const QuickTestButtons: React.FC = () => {
           key={index}
           onClick={() => setTheme(test.weather, test.time)}
           style={{
-            padding: "14px 10px",
-            border: "none",
-            borderRadius: "12px",
-            background: "rgba(255, 255, 255, 0.15)",
-            backdropFilter: "blur(5px)",
+            padding: "20px 16px",
+            border: `1px solid rgba(255, 255, 255, 0.1)`,
+            borderRadius: "16px",
+            background: `linear-gradient(135deg, ${test.gradient[0]}20, ${test.gradient[1]}20)`,
+            backdropFilter: "blur(10px)",
             color: "inherit",
             cursor: "pointer",
             fontSize: "0.9rem",
             transition: "all 0.3s ease",
             textAlign: "center",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+            fontWeight: "500",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "translateY(-3px)";
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.2)";
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)";
+            e.currentTarget.style.transform = "translateY(-4px) scale(1.02)";
+            e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)";
+            e.currentTarget.style.background = `linear-gradient(135deg, ${test.gradient[0]}30, ${test.gradient[1]}30)`;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+            e.currentTarget.style.transform = "translateY(0) scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)";
+            e.currentTarget.style.background = `linear-gradient(135deg, ${test.gradient[0]}20, ${test.gradient[1]}20)`;
           }}
         >
-          <div style={{ fontSize: "1.8rem", marginBottom: "6px" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "8px" }}>
             {test.emoji}
           </div>
-          {test.label}
+          <div
+            style={{ fontWeight: "600", marginBottom: "4px", fontSize: "1rem" }}
+          >
+            {test.label}
+          </div>
+          <div style={{ fontSize: "0.8rem", opacity: 0.8, lineHeight: 1.3 }}>
+            {test.desc}
+          </div>
         </button>
       ))}
     </div>
@@ -520,6 +545,30 @@ const getTimeEmoji = (time: string): string => {
     night: "🌙",
   };
   return emojis[time] || "🕐";
+};
+
+const getParticleIcon = (weather: WeatherType): string => {
+  const icons: Record<WeatherType, string> = {
+    sunny: "✨",
+    cloudy: "☁️",
+    rainy: "🌧️",
+    snowy: "❄️",
+    stormy: "⚡",
+    foggy: "🌫️",
+  };
+  return icons[weather];
+};
+
+const getParticleText = (weather: WeatherType): string => {
+  const texts: Record<WeatherType, string> = {
+    sunny: "Light Rays",
+    cloudy: "Soft Clouds",
+    rainy: "Rain Drops",
+    snowy: "Snow Flakes",
+    stormy: "Storm Particles",
+    foggy: "Fog Particles",
+  };
+  return texts[weather];
 };
 
 // 메인 App 컴포넌트

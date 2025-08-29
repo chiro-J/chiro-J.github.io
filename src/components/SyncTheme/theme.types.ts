@@ -29,7 +29,7 @@ export interface ColorPalette {
   overlay?: string;
 }
 
-// 테마 설정 인터페이스
+// 테마 설정 인터페이스 (메인)
 export interface ThemeConfig {
   name: string;
   weather: WeatherType;

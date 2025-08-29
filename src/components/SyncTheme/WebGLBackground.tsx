@@ -1,548 +1,529 @@
-import React, { useRef, useEffect } from "react";
-import * as THREE from "three";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { useTheme } from "./useTheme";
 import type { WeatherType, TimeOfDay } from "./theme.types";
 
-interface WebGLBackgroundProps {
+interface CanvasBackgroundProps {
   className?: string;
   style?: React.CSSProperties;
-  enableParticles?: boolean;
-  enableCelestialBodies?: boolean;
-  enableClouds?: boolean;
 }
 
-export const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
+interface Star {
+  x: number;
+  y: number;
+  size: number;
+  twinkle: number;
+}
+
+interface Cloud {
+  x: number;
+  y: number;
+  scale: number;
+  speed: number;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+}
+
+export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   className,
   style,
-  enableParticles = true,
-  enableCelestialBodies = true,
-  enableClouds = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { currentTheme } = useTheme();
-
-  const sceneRef = useRef<THREE.Scene>();
-  const rendererRef = useRef<THREE.WebGLRenderer>();
-  const cameraRef = useRef<THREE.PerspectiveCamera>();
   const animationIdRef = useRef<number>();
+  const clockRef = useRef<number>(0);
+  const lastFrameTimeRef = useRef<number>(0);
 
-  // 3D 객체들
-  const sunRef = useRef<THREE.Mesh>();
-  const moonRef = useRef<THREE.Mesh>();
-  const cloudsRef = useRef<THREE.Group>();
-  const particlesRef = useRef<THREE.Points>();
-  const starsRef = useRef<THREE.Points>();
+  // 📱 모바일 감지 및 성능 설정
+  const isMobile = useMemo(() => {
+    return (
+      /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || window.innerWidth < 768
+    );
+  }, []);
 
-  // 🕐 시간 진행도 계산 (실제 시간 or 테마 시간)
-  const getRealTimeProgress = (): number => {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    return (hours * 60 + minutes) / (24 * 60);
-  };
+  const performanceConfig = useMemo(
+    () => ({
+      targetFPS: isMobile ? 30 : 60,
+      starCount: isMobile ? 30 : 50,
+      cloudCount: isMobile ? 3 : 4,
+      particleCount: {
+        rainy: isMobile ? 50 : 80,
+        snowy: isMobile ? 30 : 50,
+        stormy: isMobile ? 80 : 120,
+        foggy: isMobile ? 15 : 25,
+      },
+    }),
+    [isMobile]
+  );
 
-  // 🎭 테마 시간에 따른 진행도 계산
-  const getThemeTimeProgress = (timeOfDay: TimeOfDay): number => {
+  const [starPositions, setStarPositions] = useState<Star[]>([]);
+  const [cloudPositions, setCloudPositions] = useState<Cloud[]>([]);
+  const [particlePositions, setParticlePositions] = useState<Particle[]>([]);
+
+  // 🌅 천체 가시성
+  const getCelestialVisibility = (timeOfDay: TimeOfDay) => {
     switch (timeOfDay) {
       case "dawn":
-        return 0.25; // 6시 (동쪽, 일출)
+        return { sun: true, moon: true, stars: true };
       case "morning":
-        return 0.4; // 9시 30분 (동쪽~정점 중간)
       case "afternoon":
-        return 0.6; // 14시 30분 (정점~서쪽 중간)
+        return { sun: true, moon: false, stars: false };
       case "evening":
-        return 0.75; // 18시 (서쪽, 일몰)
+        return { sun: false, moon: true, stars: true };
       case "night":
-        return 0.0; // 0시 (달이 정점)
+        return { sun: false, moon: true, stars: true };
       default:
-        return getRealTimeProgress(); // 기본값은 실제 시간
+        return { sun: true, moon: false, stars: false };
     }
   };
 
-  // 🌅 현재 사용할 시간 진행도 (테마 우선, 실제 시간은 참고용)
-  const getCurrentTimeProgress = (): number => {
-    return getThemeTimeProgress(currentTheme.timeOfDay);
-  };
+  // 🌞 위치 계산
+  const getSunPosition = (timeOfDay: TimeOfDay, canvas: HTMLCanvasElement) => {
+    const { width, height } = canvas;
+    const centerY = height * 0.25;
 
-  // 🌞🌙 천체 위치 계산 (실제 시간 기반)
-  const getCelestialPosition = (
-    timeProgress: number,
-    isSun: boolean
-  ): [number, number, number] => {
-    let angle: number;
-
-    if (isSun) {
-      // 태양: 6시(동쪽) → 12시(정점) → 18시(서쪽)
-      if (timeProgress >= 0.25 && timeProgress <= 0.75) {
-        // 6시-18시
-        angle = (timeProgress - 0.25) * Math.PI; // 0 to π
-      } else {
-        angle = Math.PI; // 밤에는 지평선 아래
-      }
-    } else {
-      // 달: 18시(동쪽) → 0시(정점) → 6시(서쪽)
-      if (timeProgress >= 0.75 || timeProgress <= 0.25) {
-        // 18시-6시
-        const adjustedTime =
-          timeProgress >= 0.75 ? timeProgress - 0.75 : timeProgress + 0.25;
-        angle = adjustedTime * Math.PI;
-      } else {
-        angle = Math.PI; // 낮에는 지평선 아래
-      }
-    }
-
-    const radius = 40; // 반지름 줄임
-    const x = Math.cos(angle - Math.PI / 2) * radius;
-    const y = Math.sin(angle - Math.PI / 2) * radius + 5; // 수평선 조금만 올림
-    const z = -10; // 더 가까이
-
-    return [x, y, z];
-  };
-
-  // 천체 가시성 체크
-  const isCelestialVisible = (
-    timeProgress: number,
-    isSun: boolean
-  ): boolean => {
-    if (isSun) {
-      return timeProgress >= 0.25 && timeProgress <= 0.75; // 6시-18시
-    } else {
-      return timeProgress >= 0.75 || timeProgress <= 0.25; // 18시-6시
-    }
-  };
-
-  // 파티클 시스템 생성 (날씨별)
-  const createParticleSystem = (weather: WeatherType): THREE.Points | null => {
-    if (weather === "sunny" || weather === "cloudy") {
-      return null; // 맑음/흐림은 파티클 없음
-    }
-
-    let particleCount = 1000;
-    let particleSize = 1;
-    let particleColor = 0xffffff;
-    let fallSpeed = -1;
-
-    switch (weather) {
-      case "rainy":
-        particleCount = 100;
-        particleSize = 0.5;
-        particleColor = 0x4a90e2;
-        fallSpeed = -2.2;
-        break;
-      case "snowy":
-        particleCount = 500;
-        particleSize = 1.5;
-        particleColor = 0xffffff;
-        fallSpeed = -0.125;
-        break;
-      case "stormy":
-        particleCount = 300;
-        particleSize = 0.5;
-        particleColor = 0x6a5acd;
-        fallSpeed = -2.0;
-        break;
-      case "foggy":
-        particleCount = 200;
-        particleSize = 12.0;
-        particleColor = 0xcccccc;
-        fallSpeed = -0.025;
-        break;
+    switch (timeOfDay) {
+      case "dawn":
+        return { x: width * 0.2, y: centerY + 40 };
+      case "morning":
+        return { x: width * 0.35, y: centerY - 20 };
+      case "afternoon":
+        return { x: width * 0.65, y: centerY - 20 };
       default:
-        return null;
+        return { x: width * 0.8, y: centerY + 40 };
     }
-
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const velocities = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
-      positions[i3] = (Math.random() - 0.5) * 100; // 범위 줄임
-      positions[i3 + 1] = Math.random() * 50 + 25;
-      positions[i3 + 2] = (Math.random() - 0.5) * 50;
-
-      velocities[i3] = (Math.random() - 0.5) * 0.1;
-      velocities[i3 + 1] = fallSpeed + Math.random() * 0.5;
-      velocities[i3 + 2] = (Math.random() - 0.5) * 0.1;
-    }
-
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("velocity", new THREE.BufferAttribute(velocities, 3));
-
-    const material = new THREE.PointsMaterial({
-      size: particleSize,
-      color: particleColor,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending,
-    });
-
-    return new THREE.Points(geometry, material);
   };
 
-  // 구름 생성
-  const createClouds = (): THREE.Group => {
-    const cloudGroup = new THREE.Group();
+  const getMoonPosition = (timeOfDay: TimeOfDay, canvas: HTMLCanvasElement) => {
+    const { width, height } = canvas;
+    const centerY = height * 0.2;
 
-    for (let i = 0; i < 6; i++) {
-      const cloudGeometry = new THREE.SphereGeometry(4, 16, 16);
-      const cloudMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.6,
-      });
+    switch (timeOfDay) {
+      case "dawn":
+        return { x: width * 0.75, y: centerY };
+      case "evening":
+        return { x: width * 0.25, y: centerY };
+      case "night":
+        return { x: width * 0.5, y: centerY - 30 };
+      default:
+        return { x: width * 0.5, y: centerY };
+    }
+  };
 
-      const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
-      cloud.position.set(
-        (Math.random() - 0.5) * 80,
-        Math.random() * 15 + 15,
-        (Math.random() - 0.5) * 40
+  // 🌞 세련된 해 (광선 차분하게)
+  const drawSun = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    timeOfDay: TimeOfDay
+  ) => {
+    const isGoldenHour = timeOfDay === "dawn" || timeOfDay === "evening";
+    const sunColor = isGoldenHour ? "#FF8C42" : "#FFD700";
+
+    ctx.save();
+
+    // ☀️ 차분한 광선 (8개, 천천히 회전)
+    const rayRotation = clockRef.current * 0.001; // 매우 천천히
+    for (let i = 0; i < 8; i++) {
+      const angle = ((i * 45 + rayRotation * 10) * Math.PI) / 180; // 느린 회전
+      const rayLength = 45;
+
+      const gradient = ctx.createLinearGradient(
+        x,
+        y,
+        x + Math.cos(angle) * rayLength,
+        y + Math.sin(angle) * rayLength
       );
+      gradient.addColorStop(0, `rgba(255, 212, 0, 0.4)`);
+      gradient.addColorStop(1, `rgba(255, 212, 0, 0)`);
 
-      const scale = Math.random() * 0.5 + 0.5;
-      cloud.scale.set(scale, scale * 0.6, scale);
-
-      cloudGroup.add(cloud);
-    }
-
-    return cloudGroup;
-  };
-
-  // 별 생성
-  const createStars = (): THREE.Points => {
-    const starGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(500 * 3);
-
-    for (let i = 0; i < 500; i++) {
-      const i3 = i * 3;
-      positions[i3] = (Math.random() - 0.5) * 200;
-      positions[i3 + 1] = Math.random() * 50 + 20;
-      positions[i3 + 2] = (Math.random() - 0.5) * 200;
-    }
-
-    starGeometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(positions, 3)
-    );
-
-    const starMaterial = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 1,
-      transparent: true,
-      opacity: 0.8,
-    });
-
-    return new THREE.Points(starGeometry, starMaterial);
-  };
-
-  // 초기화
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    try {
-      console.log("🌟 Initializing full WebGL background...");
-
-      // Scene
-      const scene = new THREE.Scene();
-      sceneRef.current = scene;
-
-      // Camera
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(
+        x + Math.cos(angle) * rayLength,
+        y + Math.sin(angle) * rayLength
       );
-      camera.position.set(0, 0, 30); // 적당한 거리
-      cameraRef.current = camera;
-
-      // Renderer
-      const renderer = new THREE.WebGLRenderer({
-        canvas: canvasRef.current,
-        alpha: true,
-        antialias: true,
-      });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setClearColor(0x000000, 0); // 투명 배경
-      rendererRef.current = renderer;
-
-      // 조명
-      const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
-      scene.add(ambientLight);
-
-      // 🌞 태양 생성 (더 크게, 항상 보이게 시작)
-      if (enableCelestialBodies) {
-        const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
-        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
-
-        // 초기 위치 설정 (테마 시간 기준)
-        const currentTime = getCurrentTimeProgress();
-        const sunPos = getCelestialPosition(currentTime, true);
-        sun.position.set(...sunPos);
-        sun.visible = isCelestialVisible(currentTime, true);
-
-        scene.add(sun);
-        sunRef.current = sun;
-        console.log(
-          "☀️ Sun created at:",
-          sunPos,
-          "Visible:",
-          sun.visible,
-          "Time:",
-          currentTheme.timeOfDay
-        );
-
-        // 🌙 달 생성
-        const moonGeometry = new THREE.SphereGeometry(2.5, 32, 32);
-        const moonMaterial = new THREE.MeshBasicMaterial({ color: 0xe6e6fa });
-        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-
-        // 초기 위치 설정 (테마 시간 기준)
-        const moonPos = getCelestialPosition(currentTime, false);
-        moon.position.set(...moonPos);
-        moon.visible = isCelestialVisible(currentTime, false);
-
-        scene.add(moon);
-        moonRef.current = moon;
-        console.log(
-          "🌙 Moon created at:",
-          moonPos,
-          "Visible:",
-          moon.visible,
-          "Time:",
-          currentTheme.timeOfDay
-        );
-      }
-
-      // 별 생성
-      if (enableCelestialBodies) {
-        const stars = createStars();
-        scene.add(stars);
-        starsRef.current = stars;
-        console.log("⭐ Stars created");
-      }
-
-      // 구름 생성
-      if (enableClouds) {
-        const clouds = createClouds();
-        scene.add(clouds);
-        cloudsRef.current = clouds;
-        console.log("☁️ Clouds created");
-      }
-
-      // 파티클 생성
-      if (enableParticles) {
-        const particles = createParticleSystem(currentTheme.weather);
-        if (particles) {
-          scene.add(particles);
-          particlesRef.current = particles;
-          console.log("🌧️ Particles created for:", currentTheme.weather);
-        }
-      }
-
-      // 리사이즈 핸들러
-      const handleResize = () => {
-        if (camera && renderer) {
-          camera.aspect = window.innerWidth / window.innerHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-      };
-
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-        if (animationIdRef.current) {
-          cancelAnimationFrame(animationIdRef.current);
-        }
-      };
-    } catch (error) {
-      console.error("❌ WebGL initialization failed:", error);
-    }
-  }, [enableParticles, enableCelestialBodies, enableClouds]);
-
-  // 테마 시간 변경 시 천체 위치 즉시 업데이트
-  useEffect(() => {
-    if (!enableCelestialBodies || !sunRef.current || !moonRef.current) return;
-
-    const timeProgress = getCurrentTimeProgress();
-
-    // 태양 위치 및 가시성 업데이트
-    const sunPos = getCelestialPosition(timeProgress, true);
-    const sunVisible = isCelestialVisible(timeProgress, true);
-
-    sunRef.current.position.set(...sunPos);
-    sunRef.current.visible = sunVisible;
-
-    // 일출/일몰 색상 즉시 적용
-    if (sunVisible) {
-      const material = sunRef.current.material as THREE.MeshBasicMaterial;
-      const isGoldenHour =
-        currentTheme.timeOfDay === "dawn" ||
-        currentTheme.timeOfDay === "evening";
-      material.color.setHex(isGoldenHour ? 0xff6b47 : 0xffd700);
+      ctx.stroke();
     }
 
-    // 달 위치 및 가시성 업데이트
-    const moonPos = getCelestialPosition(timeProgress, false);
-    const moonVisible = isCelestialVisible(timeProgress, false);
+    // 🌟 부드러운 외부 글로우
+    const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 50);
+    glowGradient.addColorStop(0, `rgba(255, 212, 0, 0.2)`);
+    glowGradient.addColorStop(1, "rgba(255, 212, 0, 0)");
 
-    moonRef.current.position.set(...moonPos);
-    moonRef.current.visible = moonVisible;
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, 50, 0, Math.PI * 2);
+    ctx.fill();
 
-    // 별 가시성 업데이트
-    if (starsRef.current) {
-      const isNightTime =
-        currentTheme.timeOfDay === "night" || currentTheme.timeOfDay === "dawn";
-      starsRef.current.visible = isNightTime;
-    }
+    // 🌞 메인 해
+    const sunGradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, 18);
+    sunGradient.addColorStop(0, "#FFFF99");
+    sunGradient.addColorStop(0.8, sunColor);
+    sunGradient.addColorStop(1, isGoldenHour ? "#CC5500" : "#E6AC00");
 
-    console.log(`🔄 Theme changed to ${currentTheme.timeOfDay}:`, {
-      sun: { pos: sunPos, visible: sunVisible },
-      moon: { pos: moonPos, visible: moonVisible },
-      stars: starsRef.current?.visible,
+    ctx.fillStyle = sunGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ✨ 하이라이트
+    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.beginPath();
+    ctx.arc(x - 5, y - 5, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  };
+
+  // 🌙 달
+  const drawMoon = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    ctx.save();
+
+    // 🌟 달빛 글로우
+    const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 40);
+    glowGradient.addColorStop(0, "rgba(230, 230, 250, 0.3)");
+    glowGradient.addColorStop(1, "rgba(230, 230, 250, 0)");
+
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, 40, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 🌙 메인 달
+    const moonGradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, 15);
+    moonGradient.addColorStop(0, "#FFFFFF");
+    moonGradient.addColorStop(0.8, "#E6E6FA");
+    moonGradient.addColorStop(1, "#CCCCCC");
+
+    ctx.fillStyle = moonGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 🌒 크레이터
+    ctx.fillStyle = "rgba(180, 180, 180, 0.3)";
+    ctx.beginPath();
+    ctx.arc(x + 3, y - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x - 1, y + 5, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  };
+
+  // ⭐ 별들 (반짝임 최적화)
+  const drawStars = (ctx: CanvasRenderingContext2D, stars: Star[]) => {
+    ctx.save();
+
+    stars.forEach((star) => {
+      const twinkle =
+        Math.sin(clockRef.current * 0.003 + star.twinkle) * 0.3 + 0.7;
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.8})`;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+      ctx.fill();
     });
-  }, [currentTheme.timeOfDay, enableCelestialBodies]);
 
-  // 날씨 변경 시 파티클 업데이트
-  useEffect(() => {
-    if (!sceneRef.current) return;
+    ctx.restore();
+  };
 
-    // 기존 파티클 제거
-    if (particlesRef.current) {
-      sceneRef.current.remove(particlesRef.current);
-      particlesRef.current = undefined as any;
-    }
-
-    // 새 파티클 생성
-    if (enableParticles) {
-      const newParticles = createParticleSystem(currentTheme.weather);
-      if (newParticles) {
-        sceneRef.current.add(newParticles);
-        particlesRef.current = newParticles;
-        console.log("🔄 Particles updated for:", currentTheme.weather);
-      }
-    }
-  }, [currentTheme.weather, enableParticles]);
-
-  // 애니메이션 루프
-  useEffect(() => {
-    const animate = () => {
-      if (!sceneRef.current || !rendererRef.current || !cameraRef.current)
-        return;
-
-      try {
-        const timeProgress = getCurrentTimeProgress(); // 테마 시간 사용!
-        console.log(
-          `🕐 Theme time: ${
-            currentTheme.timeOfDay
-          } → Progress: ${timeProgress.toFixed(3)}`
-        );
-
-        // 🌞🌙 실시간 천체 이동
-        if (enableCelestialBodies && sunRef.current && moonRef.current) {
-          // 태양 업데이트
-          const sunPos = getCelestialPosition(timeProgress, true);
-          const sunVisible = isCelestialVisible(timeProgress, true);
-
-          sunRef.current.position.set(...sunPos);
-          sunRef.current.visible = sunVisible;
-
-          // 🌅🌇 테마 기반 일출/일몰 색상
-          if (sunVisible) {
-            const material = sunRef.current.material as THREE.MeshBasicMaterial;
-            const isGoldenHour =
-              currentTheme.timeOfDay === "dawn" ||
-              currentTheme.timeOfDay === "evening";
-            material.color.setHex(isGoldenHour ? 0xff6b47 : 0xffd700);
-          }
-
-          // 달 업데이트
-          const moonPos = getCelestialPosition(timeProgress, false);
-          const moonVisible = isCelestialVisible(timeProgress, false);
-
-          moonRef.current.position.set(...moonPos);
-          moonRef.current.visible = moonVisible;
-        }
-
-        // ⭐ 별 가시성 (밤과 새벽에만)
-        if (starsRef.current) {
-          const isNightTime =
-            currentTheme.timeOfDay === "night" ||
-            currentTheme.timeOfDay === "dawn";
-          starsRef.current.visible = isNightTime;
-        }
-
-        // ☁️ 구름 애니메이션
-        if (enableClouds && cloudsRef.current) {
-          cloudsRef.current.children.forEach((cloud, index) => {
-            cloud.position.x += 0.01 * (index % 2 === 0 ? 1 : -1);
-
-            if (cloud.position.x > 50) cloud.position.x = -50;
-            if (cloud.position.x < -50) cloud.position.x = 50;
-          });
-
-          // 날씨별 구름 스타일
-          const opacity =
-            currentTheme.weather === "cloudy"
-              ? 0.8
-              : currentTheme.weather === "stormy"
-              ? 0.9
-              : 0.6;
-
-          cloudsRef.current.children.forEach((cloud) => {
-            const mesh = cloud as THREE.Mesh;
-            const material = mesh.material as THREE.MeshBasicMaterial;
-            material.opacity = opacity;
-            material.color.setHex(
-              currentTheme.weather === "stormy" ? 0x666666 : 0xffffff
-            );
-          });
-        }
-
-        // 🌧️❄️ 파티클 애니메이션
-        if (enableParticles && particlesRef.current) {
-          const positions = particlesRef.current.geometry.attributes.position;
-          const velocities = particlesRef.current.geometry.attributes.velocity;
-
-          if (positions && velocities) {
-            const posArray = positions.array as Float32Array;
-            const velArray = velocities.array as Float32Array;
-
-            for (let i = 0; i < posArray.length; i += 3) {
-              posArray[i] += velArray[i];
-              posArray[i + 1] += velArray[i + 1];
-              posArray[i + 2] += velArray[i + 2];
-
-              // 파티클 리셋
-              if (posArray[i + 1] < -5) {
-                posArray[i + 1] = 30 + Math.random() * 10;
-                posArray[i] = (Math.random() - 0.5) * 100;
-                posArray[i + 2] = (Math.random() - 0.5) * 50;
-              }
-            }
-
-            positions.needsUpdate = true;
-          }
-        }
-
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-        animationIdRef.current = requestAnimationFrame(animate);
-      } catch (error) {
-        console.error("❌ Animation error:", error);
+  // ☁️ 구름 (최적화)
+  const drawClouds = (
+    ctx: CanvasRenderingContext2D,
+    clouds: Cloud[],
+    width: number,
+    height: number
+  ) => {
+    const getCloudColor = () => {
+      switch (currentTheme.weather) {
+        case "stormy":
+          return "rgba(80, 80, 80, 0.8)";
+        case "foggy":
+          return "rgba(200, 200, 200, 0.88)";
+        case "rainy":
+          return "rgba(160, 160, 160, 0.8)";
+        default:
+          return currentTheme.timeOfDay === "night"
+            ? "rgba(200, 200, 220, 0.6)"
+            : "rgba(255, 255, 255, 0.8)";
       }
     };
 
-    animate();
+    ctx.save();
+    ctx.fillStyle = getCloudColor();
+
+    clouds.forEach((cloud, index) => {
+      cloud.x += cloud.speed;
+      if (cloud.x > width + 80) cloud.x = -120;
+
+      const cloudX = cloud.x;
+      const cloudY = cloud.y + Math.sin(clockRef.current * 0.0005 + index) * 2;
+      const scale = cloud.scale;
+
+      // 🌫️ 간단한 구름 (성능 최적화)
+      ctx.beginPath();
+      ctx.arc(cloudX, cloudY, 25 * scale, 0, Math.PI * 2);
+      ctx.arc(cloudX + 20 * scale, cloudY, 30 * scale, 0, Math.PI * 2);
+      ctx.arc(cloudX + 40 * scale, cloudY, 22 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.restore();
+  };
+
+  // 🌧️❄️🌫️ 개선된 날씨 파티클
+  const drawWeatherParticles = (
+    ctx: CanvasRenderingContext2D,
+    particles: Particle[],
+    width: number,
+    height: number
+  ) => {
+    if (currentTheme.weather === "sunny" || currentTheme.weather === "cloudy")
+      return;
+
+    const weather = currentTheme.weather;
+    ctx.save();
+
+    particles.forEach((particle) => {
+      if (weather === "foggy") {
+        // 🌫️ 안개는 가로로 움직임
+        particle.x += particle.vx;
+        if (particle.x > width + 50) particle.x = -50;
+
+        ctx.fillStyle = "rgba(220, 220, 220, 0.66)";
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // 다른 날씨는 아래로 떨어짐
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        if (particle.y > height) {
+          particle.y = -10;
+          particle.x = Math.random() * width;
+        }
+
+        if (weather === "snowy") {
+          // ❄️ 눈은 원으로
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (weather === "rainy" || weather === "stormy") {
+          // 🌧️ 비는 / 모양으로
+          ctx.strokeStyle =
+            weather === "stormy"
+              ? "rgba(120, 120, 180, 0.8)"
+              : "rgba(100, 150, 200, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(particle.x, particle.y);
+          ctx.lineTo(particle.x - 3, particle.y - 8); // / 모양
+          ctx.stroke();
+        }
+      }
+    });
+
+    ctx.restore();
+  };
+
+  // 🌈 하늘 그라데이션
+  const drawSkyGradient = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ) => {
+    const getSkyColors = (): [string, string] => {
+      const weather = currentTheme.weather;
+      const time = currentTheme.timeOfDay;
+
+      if (weather === "stormy") {
+        return ["#34495E", "#2C3E50"];
+      }
+
+      switch (time) {
+        case "dawn":
+          return ["#FF6B6B", "#FFE66D"];
+        case "morning":
+          return ["#74C0FC", "#E0F6FF"];
+        case "afternoon":
+          return ["#87CEEB", "#F0F8FF"];
+        case "evening":
+          return ["#FF7F50", "#DDA0DD"];
+        case "night":
+          return ["#1B2951", "#2C3E50"];
+        default:
+          return ["#87CEEB", "#F0F8FF"];
+      }
+    };
+
+    const [topColor, bottomColor] = getSkyColors();
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, topColor);
+    gradient.addColorStop(1, bottomColor);
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  };
+
+  // 🎬 초기화
+  useEffect(() => {
+    if (starPositions.length === 0) {
+      const newStars: Star[] = [];
+      for (let i = 0; i < performanceConfig.starCount; i++) {
+        newStars.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight * 0.5,
+          size: Math.random() * 1.5 + 0.5,
+          twinkle: Math.random() * Math.PI * 2,
+        });
+      }
+      setStarPositions(newStars);
+    }
+
+    if (cloudPositions.length === 0) {
+      const newClouds: Cloud[] = [];
+      for (let i = 0; i < performanceConfig.cloudCount; i++) {
+        newClouds.push({
+          x: Math.random() * window.innerWidth,
+          y:
+            window.innerHeight * 0.15 +
+            Math.random() * window.innerHeight * 0.25,
+          scale: Math.random() * 0.3 + 0.7,
+          speed: Math.random() * 0.15 + 0.05,
+        });
+      }
+      setCloudPositions(newClouds);
+    }
+  }, [starPositions.length, cloudPositions.length, performanceConfig]);
+
+  // 날씨별 파티클 생성
+  useEffect(() => {
+    if (currentTheme.weather === "sunny" || currentTheme.weather === "cloudy") {
+      setParticlePositions([]);
+      return;
+    }
+
+    const count =
+      performanceConfig.particleCount[
+        currentTheme.weather as keyof typeof performanceConfig.particleCount
+      ] || 50;
+    const newParticles: Particle[] = [];
+
+    for (let i = 0; i < count; i++) {
+      if (currentTheme.weather === "foggy") {
+        newParticles.push({
+          x: Math.random() * window.innerWidth,
+          y:
+            window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4,
+          vx: Math.random() * 0.3 + 0.1, // 가로로만 움직임
+          vy: 0,
+          size: Math.random() * 80 + 4,
+        });
+      } else {
+        newParticles.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          vx: Math.random() * 0.5 - 0.25, // 약간의 좌우 흔들림
+          vy:
+            currentTheme.weather === "snowy"
+              ? Math.random() * 0.8 + 0.3 // 눈은 천천히
+              : Math.random() * 2 + 1.5, // 비는 빠르게
+          size: Math.random() * 2 + 1,
+        });
+      }
+    }
+
+    setParticlePositions(newParticles);
+  }, [currentTheme.weather, performanceConfig]);
+
+  // 🎥 최적화된 렌더링
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const updateCanvasSize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+
+    const frameInterval = 1000 / performanceConfig.targetFPS;
+
+    const animate = (currentTime: number) => {
+      // 📱 FPS 제한으로 성능 최적화
+      if (currentTime - lastFrameTimeRef.current < frameInterval) {
+        animationIdRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      lastFrameTimeRef.current = currentTime;
+      clockRef.current += 1;
+
+      const { width, height } = canvas;
+
+      // 🎨 렌더링
+      drawSkyGradient(ctx, width, height);
+      drawClouds(ctx, cloudPositions, width, height);
+
+      const visibility = getCelestialVisibility(currentTheme.timeOfDay);
+
+      if (visibility.stars && starPositions.length > 0) {
+        drawStars(ctx, starPositions);
+      }
+
+      if (visibility.moon) {
+        const moonPos = getMoonPosition(currentTheme.timeOfDay, canvas);
+        drawMoon(ctx, moonPos.x, moonPos.y);
+      }
+
+      if (visibility.sun) {
+        const sunPos = getSunPosition(currentTheme.timeOfDay, canvas);
+        drawSun(ctx, sunPos.x, sunPos.y, currentTheme.timeOfDay);
+      }
+
+      if (particlePositions.length > 0) {
+        drawWeatherParticles(ctx, particlePositions, width, height);
+      }
+
+      animationIdRef.current = requestAnimationFrame(animate);
+    };
+
+    animate(0);
 
     return () => {
+      window.removeEventListener("resize", updateCanvasSize);
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
       }
     };
-  }, [currentTheme, enableParticles, enableCelestialBodies, enableClouds]);
+  }, [
+    currentTheme,
+    starPositions,
+    cloudPositions,
+    particlePositions,
+    performanceConfig,
+  ]);
 
   return (
     <canvas
@@ -554,7 +535,7 @@ export const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
         left: 0,
         width: "100vw",
         height: "100vh",
-        zIndex: -2,
+        zIndex: -20,
         pointerEvents: "none",
         ...style,
       }}
