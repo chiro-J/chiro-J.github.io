@@ -329,7 +329,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
             weather === "stormy"
               ? "rgba(120, 120, 180, 0.8)"
               : "rgba(220, 220, 240, 0.9)";
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.1;
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
           ctx.lineTo(particle.x - 25, particle.y - 75); // / 모양
@@ -433,7 +433,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
             window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4,
           vx: Math.random() * 0.3 + 0.1, // 가로로만 움직임
           vy: 0,
-          size: Math.random() * 500 + 4,
+          size: Math.random() * 333 + 100,
         });
       } else {
         newParticles.push({
