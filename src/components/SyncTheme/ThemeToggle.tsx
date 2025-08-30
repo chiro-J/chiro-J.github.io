@@ -10,8 +10,14 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   variant = "full",
 }) => {
   const { currentTheme, setTheme, setWeather, setTimeOfDay } = useTheme();
-  const { isSmartMode, isLoading, error, locationInfo, toggleSmartMode } =
-    useSmartMode();
+  const {
+    isSmartMode,
+    isLoading,
+    error,
+    locationInfo,
+    toggleSmartMode,
+    updateSmartTheme, // 테스트용 수동 업데이트 추가
+  } = useSmartMode();
 
   const weathers: WeatherType[] = [
     "sunny",
@@ -212,6 +218,24 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           )}
         </button>
 
+        {/* 🧪 테스트 버튼 (스마트 모드 활성화시만 표시) */}
+        {isSmartMode && !isLoading && (
+          <button
+            onClick={updateSmartTheme}
+            style={{
+              ...buttonStyle,
+              background: `linear-gradient(135deg, #3B82F6, #1D4ED8)`,
+              width: "100%",
+              justifyContent: "center",
+              padding: "8px",
+              fontSize: "12px",
+              marginTop: "8px",
+            }}
+          >
+            🧪 Test Smart Update
+          </button>
+        )}
+
         {/* 스마트 모드 설명 */}
         <div
           style={{
@@ -227,6 +251,23 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             : "Enable for automatic time & weather updates"}
         </div>
 
+        {/* 위치 정보 표시 */}
+        {isSmartMode && locationInfo.city && !error && (
+          <div
+            style={{
+              fontSize: "11px",
+              color: currentTheme.colors.accent,
+              textAlign: "center",
+              marginTop: "4px",
+              background: "rgba(255,255,255,0.1)",
+              padding: "4px 8px",
+              borderRadius: "12px",
+            }}
+          >
+            📍 {locationInfo.city}, {locationInfo.country}
+          </div>
+        )}
+
         {/* 에러 표시 */}
         {error && (
           <div
@@ -234,14 +275,25 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               fontSize: "11px",
               color: "#EF4444",
               textAlign: "center",
-              marginTop: "6px",
-              padding: "6px",
+              marginTop: "8px",
+              padding: "8px",
               background: "rgba(239, 68, 68, 0.1)",
-              borderRadius: "6px",
+              borderRadius: "8px",
               border: "1px solid rgba(239, 68, 68, 0.2)",
+              lineHeight: 1.3,
             }}
           >
             ⚠️ {error}
+            {error.includes("API key") && (
+              <div style={{ marginTop: "4px", fontSize: "10px" }}>
+                💡 Add REACT_APP_OPENWEATHER_API_KEY to .env file
+              </div>
+            )}
+            {error.includes("Location") && (
+              <div style={{ marginTop: "4px", fontSize: "10px" }}>
+                💡 Allow location access in browser settings
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -276,8 +276,8 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       // 🌫️ 간단한 구름 (성능 최적화)
       ctx.beginPath();
       ctx.arc(cloudX, cloudY, 25 * scale, 0, Math.PI * 2);
-      ctx.arc(cloudX + 20 * scale, cloudY, 30 * scale, 0, Math.PI * 2);
-      ctx.arc(cloudX + 40 * scale, cloudY, 22 * scale, 0, Math.PI * 2);
+      ctx.arc(cloudX + 40 * scale, cloudY, 30 * scale, 0, Math.PI * 2);
+      ctx.arc(cloudX + 80 * scale, cloudY, 22 * scale, 0, Math.PI * 2);
       ctx.fill();
     });
 
