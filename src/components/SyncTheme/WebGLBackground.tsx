@@ -402,12 +402,32 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
           ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
           ctx.fill();
         } else if (weather === "rainy" || weather === "stormy") {
-          // 비는 선으로
-          ctx.strokeStyle =
-            weather === "stormy"
-              ? "rgba(120, 120, 180, 0.8)"
-              : "rgba(220, 220, 240, 0.9)";
-          ctx.lineWidth = weather === "stormy" ? 1.5 : 1.1;
+          // 비는 선으로 - 시간대별 색상 조정
+          let rainColor;
+
+          if (weather === "stormy") {
+            rainColor = "rgba(120, 120, 180, 0.8)";
+          } else {
+            // rainy 날씨의 시간대별 색상
+            switch (currentTheme.timeOfDay) {
+              case "morning":
+              case "afternoon":
+                rainColor = "rgba(140, 140, 140, 0.75)"; // 어두운 파란색 (밝은 시간대용)
+                break;
+              case "evening":
+              case "dawn":
+                rainColor = "rgba(220, 220, 240, 0.9)"; // 중간 밝기
+                break;
+              case "night":
+                rainColor = "rgba(220, 220, 240, 0.9)"; // 밝은 색상 (어두운 시간대용)
+                break;
+              default:
+                rainColor = "rgba(180, 180, 200, 0.8)";
+            }
+          }
+
+          ctx.strokeStyle = rainColor;
+          ctx.lineWidth = weather === "stormy" ? 1.5 : 1.2; // 빗방울 선 두께 약간 증가
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
           ctx.lineTo(particle.x - 25, particle.y - 75);
@@ -520,8 +540,8 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
           vx: Math.random() * 0.25 - 0.0001,
           vy:
             currentTheme.weather === "snowy"
-              ? Math.random() * 2.5 + 2.5
-              : Math.random() * 1.5 + 15,
+              ? Math.random() * 0.5 + 2.2
+              : Math.random() * 2.2 + 22,
           size: Math.random() * 5 + 3,
         });
       }
