@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme, useSmartMode } from "./useTheme";
 import type { WeatherType, TimeOfDay } from "./theme.types";
 
@@ -10,8 +10,27 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   variant = "full",
 }) => {
   const { currentTheme, setTheme, setWeather, setTimeOfDay } = useTheme();
-  const { isSmartMode, isLoading, error, locationInfo, toggleSmartMode } =
-    useSmartMode();
+  const {
+    isSmartMode,
+    isLoading,
+    error,
+    debugInfo,
+    locationInfo,
+    toggleSmartMode,
+    updateSmartTheme,
+  } = useSmartMode();
+
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date()); // 실시간 시계용 상태
+
+  // 실시간 시계 업데이트 (1초마다)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const weathers: WeatherType[] = [
     "sunny",
@@ -57,7 +76,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     borderRadius: "16px",
     padding: variant === "compact" ? "12px" : "20px",
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-    maxWidth: variant === "compact" ? "240px" : "380px",
+    maxWidth: variant === "compact" ? "240px" : "420px",
     color: currentTheme.colors.text.primary,
     transition: "all 0.3s ease",
   };
@@ -90,6 +109,27 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     fontSize: "14px",
     cursor: "pointer",
     backdropFilter: "blur(10px)",
+  };
+
+  // 실시간 시간 표시
+  const getCurrentTimeString = () => {
+    return currentTime.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
+
+  // 스마트 모드 토글 (단순화)
+  const handleSmartModeToggle = () => {
+    if (!isSmartMode) {
+      // OFF → ON: 즉시 완전 동기화
+      toggleSmartMode();
+    } else {
+      // ON → OFF: 테스트 모드로 전환
+      toggleSmartMode();
+    }
   };
 
   if (variant === "compact") {
@@ -135,10 +175,42 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             color: currentTheme.colors.text.primary,
             fontSize: "1.1rem",
             fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
           }}
         >
           🎨 Theme Studio
+          {/* 디버그 패널 토글 버튼 */}
+          <button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            style={{
+              background: showDebugPanel
+                ? "rgba(34, 197, 94, 0.3)"
+                : "rgba(100, 100, 100, 0.3)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "6px",
+              padding: "4px 8px",
+              color: currentTheme.colors.text.primary,
+              fontSize: "10px",
+              cursor: "pointer",
+            }}
+          >
+            🐛 {showDebugPanel ? "Hide" : "Debug"}
+          </button>
         </h3>
+
+        {/* 실시간 시계 */}
+        <div
+          style={{
+            fontSize: "12px",
+            color: currentTheme.colors.text.secondary,
+            marginBottom: "8px",
+          }}
+        >
+          🕒 Local Time: {getCurrentTimeString()}
+        </div>
 
         {/* 현재 테마 표시 */}
         <div
@@ -165,29 +237,93 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 fontSize: "11px",
                 opacity: 0.7,
                 color: currentTheme.colors.text.secondary,
+                marginTop: "6px",
+                padding: "4px 8px",
+                background:
+                  locationInfo.method === "gps"
+                    ? "rgba(16, 185, 129, 0.2)"
+                    : "rgba(59, 130, 246, 0.2)",
+                borderRadius: "8px",
+                border:
+                  locationInfo.method === "gps"
+                    ? "1px solid rgba(16, 185, 129, 0.3)"
+                    : "1px solid rgba(59, 130, 246, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
               }}
             >
-              📍 {locationInfo.city}, {locationInfo.country}
+              {locationInfo.method === "gps" ? "🎯" : "📍"}
+              {locationInfo.city}, {locationInfo.country}
+              {locationInfo.coordinates && (
+                <span style={{ fontSize: "9px", opacity: 0.6 }}>
+                  ({locationInfo.coordinates.lat.toFixed(2)},{" "}
+                  {locationInfo.coordinates.lon.toFixed(2)})
+                </span>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* 스마트 모드 버튼 - 클릭 시 즉시 동기화 */}
+      {/* 디버그 패널 */}
+      {showDebugPanel && debugInfo && (
+        <div
+          style={{
+            background: "rgba(0, 0, 0, 0.4)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "8px",
+            padding: "12px",
+            marginBottom: "16px",
+            fontSize: "11px",
+            fontFamily: "monospace",
+            color: "#E5E7EB",
+            maxHeight: "120px",
+            overflowY: "auto",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "8px",
+              fontWeight: "600",
+              color: currentTheme.colors.accent,
+            }}
+          >
+            🔍 Debug Info:
+          </div>
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.3,
+            }}
+          >
+            {debugInfo}
+          </pre>
+        </div>
+      )}
+
+      {/* 단순한 모드 토글 버튼 */}
       <div style={{ marginBottom: "16px" }}>
         <button
-          onClick={toggleSmartMode}
+          onClick={handleSmartModeToggle}
           disabled={isLoading}
           style={{
             ...buttonStyle,
             background: isSmartMode
-              ? `linear-gradient(135deg, #10B981, #059669)`
-              : `linear-gradient(135deg, #6B7280, #4B5563)`,
+              ? isLoading
+                ? `linear-gradient(135deg, #059669, #047857)`
+                : `linear-gradient(135deg, #10B981, #059669)`
+              : isLoading
+              ? `linear-gradient(135deg, #1D4ED8, #1E40AF)`
+              : `linear-gradient(135deg, #3B82F6, #1D4ED8)`,
             width: "100%",
             justifyContent: "center",
-            padding: "12px",
+            padding: "14px",
             fontSize: "14px",
             fontWeight: "600",
+            minHeight: "50px",
           }}
         >
           {isLoading ? (
@@ -202,47 +338,43 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                   animation: "spin 1s linear infinite",
                 }}
               />
-              {isSmartMode ? "Syncing..." : "Activating..."}
+              Syncing Weather & Time...
             </>
           ) : (
             <>
-              {isSmartMode ? "🤖" : "⚡"} Smart Mode:{" "}
-              {isSmartMode ? "ON" : "OFF"}
+              {isSmartMode ? (
+                <>🔄 Switch to Test Mode</>
+              ) : (
+                <>⚡ Sync with Real Weather & Time</>
+              )}
             </>
           )}
         </button>
 
-        {/* 스마트 모드 설명 */}
+        {/* 상태별 설명 */}
         <div
           style={{
             fontSize: "11px",
             color: currentTheme.colors.text.secondary,
             textAlign: "center",
-            marginTop: "6px",
-            lineHeight: 1.3,
+            marginTop: "8px",
+            lineHeight: 1.4,
           }}
         >
-          {isSmartMode
-            ? "Real-time weather + location sync active"
-            : "Click to sync with real weather & time"}
+          {isSmartMode ? (
+            <>
+              <div style={{ marginBottom: "4px" }}>
+                🤖 Smart Mode Active (
+                {locationInfo.method?.toUpperCase() || "LOADING"})
+              </div>
+              <div style={{ opacity: 0.7 }}>
+                Real-time sync enabled • Click to test different themes
+              </div>
+            </>
+          ) : (
+            "Test Mode • Click to sync with your current weather & time"
+          )}
         </div>
-
-        {/* 위치 정보 표시 */}
-        {isSmartMode && locationInfo.city && !error && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: currentTheme.colors.accent,
-              textAlign: "center",
-              marginTop: "4px",
-              background: "rgba(255,255,255,0.1)",
-              padding: "4px 8px",
-              borderRadius: "12px",
-            }}
-          >
-            📍 {locationInfo.city}, {locationInfo.country}
-          </div>
-        )}
 
         {/* 에러 표시 */}
         {error && (

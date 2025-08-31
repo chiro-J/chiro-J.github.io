@@ -2,7 +2,8 @@ import React from "react";
 import { ThemeProvider } from "./components/SyncTheme/ThemeProvider";
 import { ThemeToggle } from "./components/SyncTheme/ThemeToggle";
 import { WebGLBackground } from "./components/SyncTheme/WebGLBackground";
-import { useTheme } from "./components/SyncTheme/useTheme";
+import { LocationPermissionDialog } from "./components/SyncTheme/LocationPermissionDialog";
+import { useTheme, useSmartMode } from "./components/SyncTheme/useTheme";
 import type {
   WeatherType,
   TimeOfDay,
@@ -11,6 +12,12 @@ import type {
 // 메인 컨텐츠 컴포넌트 (테마 컨텍스트 내부에서 사용)
 const MainContent: React.FC = () => {
   const { currentTheme } = useTheme();
+  const {
+    showLocationDialog,
+    retryGPSLocation,
+    dismissLocationDialog,
+    locationInfo,
+  } = useSmartMode();
 
   return (
     <div
@@ -27,10 +34,19 @@ const MainContent: React.FC = () => {
       }}
     >
       {/* Enhanced WebGL Background */}
-      <WebGLBackground
-        enableParticles={true}
-        enableCelestialBodies={true}
-        enableClouds={true}
+      <WebGLBackground />
+
+      {/* 위치 권한 대화상자 */}
+      <LocationPermissionDialog
+        show={showLocationDialog}
+        onRetry={retryGPSLocation}
+        onDismiss={dismissLocationDialog}
+        locationMethod={locationInfo.method}
+        cityInfo={
+          locationInfo.city && locationInfo.country
+            ? `${locationInfo.city}, ${locationInfo.country}`
+            : undefined
+        }
       />
 
       {/* 메인 헤더 */}
@@ -91,6 +107,38 @@ const MainContent: React.FC = () => {
         >
           Current Experience: {currentTheme.name}
         </h2>
+
+        {/* 위치 정보 표시 (스마트 모드 시) */}
+        {locationInfo.city && (
+          <div
+            style={{
+              background:
+                locationInfo.method === "gps"
+                  ? "rgba(16, 185, 129, 0.2)"
+                  : "rgba(59, 130, 246, 0.2)",
+              border:
+                locationInfo.method === "gps"
+                  ? "1px solid rgba(16, 185, 129, 0.4)"
+                  : "1px solid rgba(59, 130, 246, 0.4)",
+              borderRadius: "12px",
+              padding: "12px 16px",
+              marginBottom: "20px",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+            }}
+          >
+            <span>{locationInfo.method === "gps" ? "🎯" : "📍"}</span>
+            <span>
+              {locationInfo.method === "gps"
+                ? "GPS 정확한 위치"
+                : "IP 기반 추정 위치"}
+              : {locationInfo.city}, {locationInfo.country}
+            </span>
+          </div>
+        )}
 
         <div
           style={{
@@ -370,7 +418,7 @@ const FeatureCard: React.FC<{
         e.currentTarget.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.2)";
       }}
     >
-      {/* 그라데이션 오버레이 */}
+      {/* 그라디언트 오버레이 */}
       <div
         style={{
           position: "absolute",
