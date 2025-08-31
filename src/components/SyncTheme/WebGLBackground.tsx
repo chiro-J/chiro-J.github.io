@@ -19,6 +19,7 @@ interface Cloud {
   y: number;
   scale: number;
   speed: number;
+  opacity: number; // 구름 투명도 추가
 }
 
 interface Particle {
@@ -39,7 +40,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   const clockRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
 
-  // 📱 모바일 감지 및 성능 설정
+  // 모바일 감지 및 성능 설정
   const isMobile = useMemo(() => {
     return (
       /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -48,26 +49,79 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     );
   }, []);
 
-  const performanceConfig = useMemo(
-    () => ({
+  // 날씨별 구름 설정
+  const getCloudConfig = (weather: WeatherType) => {
+    const baseCount = isMobile ? 3 : 4;
+
+    switch (weather) {
+      case "sunny":
+        return {
+          count: Math.floor(baseCount * 0.5), // 절반으로 줄임
+          opacity: 0.6,
+          speed: 0.05,
+        };
+      case "cloudy":
+        return {
+          count: Math.floor(baseCount * 2.5), // 2.5배 증가
+          opacity: 0.9,
+          speed: 0.08,
+        };
+      case "rainy":
+        return {
+          count: Math.floor(baseCount * 2), // 2배 증가
+          opacity: 0.85,
+          speed: 0.12,
+        };
+      case "stormy":
+        return {
+          count: Math.floor(baseCount * 4), // 4배 증가 (엄청 많이)
+          opacity: 0.95,
+          speed: 0.15,
+        };
+      case "snowy":
+        return {
+          count: Math.floor(baseCount * 3), // 3배 증가 (눈구름)
+          opacity: 0.85,
+          speed: 0.07,
+        };
+      case "foggy":
+        return {
+          count: Math.floor(baseCount * 1.8), // 1.8배 증가
+          opacity: 0.7,
+          speed: 0.04,
+        };
+      default:
+        return {
+          count: baseCount,
+          opacity: 0.8,
+          speed: 0.08,
+        };
+    }
+  };
+
+  const performanceConfig = useMemo(() => {
+    const cloudConfig = getCloudConfig(currentTheme.weather);
+
+    return {
       targetFPS: isMobile ? 30 : 60,
       starCount: isMobile ? 30 : 50,
-      cloudCount: isMobile ? 3 : 4,
+      cloudCount: cloudConfig.count,
+      cloudOpacity: cloudConfig.opacity,
+      cloudSpeed: cloudConfig.speed,
       particleCount: {
         rainy: isMobile ? 50 : 80,
         snowy: isMobile ? 30 : 50,
         stormy: isMobile ? 80 : 120,
         foggy: isMobile ? 15 : 25,
       },
-    }),
-    [isMobile]
-  );
+    };
+  }, [isMobile, currentTheme.weather]);
 
   const [starPositions, setStarPositions] = useState<Star[]>([]);
   const [cloudPositions, setCloudPositions] = useState<Cloud[]>([]);
   const [particlePositions, setParticlePositions] = useState<Particle[]>([]);
 
-  // 🌅 천체 가시성
+  // 천체 가시성
   const getCelestialVisibility = (timeOfDay: TimeOfDay) => {
     switch (timeOfDay) {
       case "dawn":
@@ -84,7 +138,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     }
   };
 
-  // 🌞 위치 계산
+  // 위치 계산
   const getSunPosition = (timeOfDay: TimeOfDay, canvas: HTMLCanvasElement) => {
     const { width, height } = canvas;
     const centerY = height * 0.25;
@@ -117,7 +171,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     }
   };
 
-  // 🌞 세련된 해 (광선 차분하게)
+  // 해 그리기
   const drawSun = (
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -129,10 +183,10 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
     ctx.save();
 
-    // ☀️ 차분한 광선 (8개, 천천히 회전)
-    const rayRotation = clockRef.current * 0.001; // 매우 천천히
+    // 광선
+    const rayRotation = clockRef.current * 0.001;
     for (let i = 0; i < 8; i++) {
-      const angle = ((i * 45 + rayRotation * 10) * Math.PI) / 180; // 느린 회전
+      const angle = ((i * 45 + rayRotation * 10) * Math.PI) / 180;
       const rayLength = 45;
 
       const gradient = ctx.createLinearGradient(
@@ -155,7 +209,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       ctx.stroke();
     }
 
-    // 🌟 부드러운 외부 글로우
+    // 외부 글로우
     const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 50);
     glowGradient.addColorStop(0, `rgba(255, 212, 0, 0.2)`);
     glowGradient.addColorStop(1, "rgba(255, 212, 0, 0)");
@@ -165,7 +219,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.arc(x, y, 50, 0, Math.PI * 2);
     ctx.fill();
 
-    // 🌞 메인 해
+    // 메인 해
     const sunGradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, 18);
     sunGradient.addColorStop(0, "#FFFF99");
     sunGradient.addColorStop(0.8, sunColor);
@@ -176,7 +230,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.arc(x, y, 18, 0, Math.PI * 2);
     ctx.fill();
 
-    // ✨ 하이라이트
+    // 하이라이트
     ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
     ctx.beginPath();
     ctx.arc(x - 5, y - 5, 8, 0, Math.PI * 2);
@@ -185,11 +239,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.restore();
   };
 
-  // 🌙 달
+  // 달 그리기
   const drawMoon = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     ctx.save();
 
-    // 🌟 달빛 글로우
+    // 달빛 글로우
     const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 40);
     glowGradient.addColorStop(0, "rgba(230, 230, 250, 0.3)");
     glowGradient.addColorStop(1, "rgba(230, 230, 250, 0)");
@@ -199,7 +253,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.arc(x, y, 40, 0, Math.PI * 2);
     ctx.fill();
 
-    // 🌙 메인 달
+    // 메인 달
     const moonGradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, 15);
     moonGradient.addColorStop(0, "#FFFFFF");
     moonGradient.addColorStop(0.8, "#E6E6FA");
@@ -210,7 +264,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.arc(x, y, 15, 0, Math.PI * 2);
     ctx.fill();
 
-    // 🌒 크레이터
+    // 크레이터
     ctx.fillStyle = "rgba(180, 180, 180, 0.3)";
     ctx.beginPath();
     ctx.arc(x + 3, y - 2, 2, 0, Math.PI * 2);
@@ -223,7 +277,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.restore();
   };
 
-  // ⭐ 별들 (반짝임 최적화)
+  // 별 그리기
   const drawStars = (ctx: CanvasRenderingContext2D, stars: Star[]) => {
     ctx.save();
 
@@ -240,7 +294,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.restore();
   };
 
-  // ☁️ 구름 (최적화)
+  // 날씨별 구름 그리기 (밀도 조정)
   const drawClouds = (
     ctx: CanvasRenderingContext2D,
     clouds: Cloud[],
@@ -250,41 +304,65 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     const getCloudColor = () => {
       switch (currentTheme.weather) {
         case "stormy":
-          return "rgba(80, 80, 80, 0.888)";
-        case "foggy":
-          return "rgba(200, 200, 200, 0.888)";
+          return "rgba(60, 60, 60, 0.95)"; // 매우 어두운 폭풍구름
         case "rainy":
-          return "rgba(160, 160, 160, 0.888)";
+          return "rgba(120, 120, 120, 0.85)"; // 어두운 비구름
+        case "cloudy":
+          return "rgba(180, 180, 180, 0.8)"; // 일반 구름
+        case "foggy":
+          return "rgba(200, 200, 200, 0.6)"; // 연한 안개구름
         default:
           return currentTheme.timeOfDay === "night"
             ? "rgba(200, 200, 220, 0.6)"
-            : "rgba(255, 255, 255, 0.8)";
+            : "rgba(255, 255, 255, 0.7)"; // 맑은 날 구름
       }
     };
 
     ctx.save();
-    ctx.fillStyle = getCloudColor();
 
     clouds.forEach((cloud, index) => {
-      cloud.x += cloud.speed;
-      if (cloud.x > width + 80) cloud.x = -120;
+      // 구름 이동
+      cloud.x += cloud.speed * performanceConfig.cloudSpeed;
+      if (cloud.x > width + 120) cloud.x = -150;
 
       const cloudX = cloud.x;
-      const cloudY = cloud.y + Math.sin(clockRef.current * 0.0005 + index) * 2;
+      const cloudY = cloud.y + Math.sin(clockRef.current * 0.0005 + index) * 3;
       const scale = cloud.scale;
 
-      // 🌫️ 간단한 구름 (성능 최적화)
+      // 날씨별 구름 색상과 투명도 적용
+      ctx.fillStyle = getCloudColor();
+      ctx.globalAlpha = cloud.opacity * performanceConfig.cloudOpacity;
+
+      // 구름 모양 (더 볼륨감 있게)
       ctx.beginPath();
-      ctx.arc(cloudX, cloudY, 25 * scale, 0, Math.PI * 2);
-      ctx.arc(cloudX + 40 * scale, cloudY, 30 * scale, 0, Math.PI * 2);
-      ctx.arc(cloudX + 80 * scale, cloudY, 22 * scale, 0, Math.PI * 2);
+      // 첫 번째 구름 덩어리
+      ctx.arc(cloudX, cloudY, 28 * scale, 0, Math.PI * 2);
+      // 두 번째 구름 덩어리 (더 크게)
+      ctx.arc(cloudX + 45 * scale, cloudY - 5, 35 * scale, 0, Math.PI * 2);
+      // 세 번째 구름 덩어리
+      ctx.arc(cloudX + 85 * scale, cloudY, 25 * scale, 0, Math.PI * 2);
+      // 네 번째 구름 덩어리 (폭풍시 추가)
+      if (currentTheme.weather === "stormy") {
+        ctx.arc(cloudX + 25 * scale, cloudY + 15, 20 * scale, 0, Math.PI * 2);
+      }
+
       ctx.fill();
+
+      // 폭풍구름의 경우 추가 그림자 효과
+      if (currentTheme.weather === "stormy") {
+        ctx.fillStyle = "rgba(40, 40, 40, 0.3)";
+        ctx.beginPath();
+        ctx.arc(cloudX + 10, cloudY + 10, 25 * scale, 0, Math.PI * 2);
+        ctx.arc(cloudX + 50, cloudY + 5, 30 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
 
+    ctx.globalAlpha = 1; // 복원
     ctx.restore();
   };
 
-  // 🌧️❄️🌫️ 개선된 날씨 파티클
+  // 날씨 파티클
   const drawWeatherParticles = (
     ctx: CanvasRenderingContext2D,
     particles: Particle[],
@@ -299,11 +377,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
     particles.forEach((particle) => {
       if (weather === "foggy") {
-        // 🌫️ 안개는 가로로 움직임
+        // 안개는 가로로 움직임
         particle.x += particle.vx;
         if (particle.x > width + 50) particle.x = -50;
 
-        ctx.fillStyle = "rgba(220, 220, 220, 0.111)";
+        ctx.fillStyle = "rgba(220, 220, 220, 0.15)";
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
@@ -318,21 +396,21 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         }
 
         if (weather === "snowy") {
-          // ❄️ 눈은 원으로
+          // 눈은 원으로
           ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
           ctx.beginPath();
           ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
           ctx.fill();
         } else if (weather === "rainy" || weather === "stormy") {
-          // 🌧️ 비는 / 모양으로
+          // 비는 선으로
           ctx.strokeStyle =
             weather === "stormy"
               ? "rgba(120, 120, 180, 0.8)"
               : "rgba(220, 220, 240, 0.9)";
-          ctx.lineWidth = 1.1;
+          ctx.lineWidth = weather === "stormy" ? 1.5 : 1.1;
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
-          ctx.lineTo(particle.x - 25, particle.y - 75); // / 모양
+          ctx.lineTo(particle.x - 25, particle.y - 75);
           ctx.stroke();
         }
       }
@@ -341,7 +419,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.restore();
   };
 
-  // 🌈 하늘 그라데이션
+  // 하늘 그라데이션
   const drawSkyGradient = (
     ctx: CanvasRenderingContext2D,
     width: number,
@@ -352,7 +430,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       const time = currentTheme.timeOfDay;
 
       if (weather === "stormy") {
-        return ["#34495E", "#2C3E50"];
+        return ["#2C3E50", "#34495E"]; // 더 어두운 폭풍 하늘
       }
 
       switch (time) {
@@ -381,36 +459,36 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.fillRect(0, 0, width, height);
   };
 
-  // 🎬 초기화
+  // 초기화 및 날씨별 구름 생성
   useEffect(() => {
-    if (starPositions.length === 0) {
-      const newStars: Star[] = [];
-      for (let i = 0; i < performanceConfig.starCount; i++) {
-        newStars.push({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight * 0.5,
-          size: Math.random() * 1.5 + 0.5,
-          twinkle: Math.random() * Math.PI * 2,
-        });
-      }
-      setStarPositions(newStars);
+    const newStars: Star[] = [];
+    for (let i = 0; i < performanceConfig.starCount; i++) {
+      newStars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 0.5,
+        size: Math.random() * 1.5 + 0.5,
+        twinkle: Math.random() * Math.PI * 2,
+      });
     }
+    setStarPositions(newStars);
 
-    if (cloudPositions.length === 0) {
-      const newClouds: Cloud[] = [];
-      for (let i = 0; i < performanceConfig.cloudCount; i++) {
-        newClouds.push({
-          x: Math.random() * window.innerWidth,
-          y:
-            window.innerHeight * 0.15 +
-            Math.random() * window.innerHeight * 0.25,
-          scale: Math.random() * 0.3 + 0.7,
-          speed: Math.random() * 0.15 + 0.05,
-        });
-      }
-      setCloudPositions(newClouds);
+    // 날씨별 구름 생성
+    const newClouds: Cloud[] = [];
+    for (let i = 0; i < performanceConfig.cloudCount; i++) {
+      newClouds.push({
+        x: Math.random() * window.innerWidth - 100,
+        y: window.innerHeight * 0.15 + Math.random() * window.innerHeight * 0.3,
+        scale: Math.random() * 0.4 + 0.6,
+        speed: Math.random() * 0.1 + performanceConfig.cloudSpeed,
+        opacity: Math.random() * 0.3 + 0.7, // 구름별 투명도 차이
+      });
     }
-  }, [starPositions.length, cloudPositions.length, performanceConfig]);
+    setCloudPositions(newClouds);
+
+    console.log(
+      `구름 생성: ${currentTheme.weather} → ${performanceConfig.cloudCount}개`
+    );
+  }, [currentTheme.weather, performanceConfig]);
 
   // 날씨별 파티클 생성
   useEffect(() => {
@@ -431,7 +509,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
           x: Math.random() * window.innerWidth,
           y:
             window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4,
-          vx: Math.random() * 0.3 + 0.1, // 가로로만 움직임
+          vx: Math.random() * 0.3 + 0.1,
           vy: 0,
           size: Math.random() * 333 + 100,
         });
@@ -439,11 +517,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         newParticles.push({
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          vx: Math.random() * 0.25 - 0.0001, // 약간의 좌우 흔들림
+          vx: Math.random() * 0.25 - 0.0001,
           vy:
             currentTheme.weather === "snowy"
-              ? Math.random() * 2.5 + 2.5 // 눈은 천천히
-              : Math.random() * 1.5 + 15, // 비는 빠르게
+              ? Math.random() * 2.5 + 2.5
+              : Math.random() * 1.5 + 15,
           size: Math.random() * 5 + 3,
         });
       }
@@ -452,7 +530,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     setParticlePositions(newParticles);
   }, [currentTheme.weather, performanceConfig]);
 
-  // 🎥 최적화된 렌더링
+  // 최적화된 렌더링
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -471,7 +549,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     const frameInterval = 1000 / performanceConfig.targetFPS;
 
     const animate = (currentTime: number) => {
-      // 📱 FPS 제한으로 성능 최적화
+      // FPS 제한으로 성능 최적화
       if (currentTime - lastFrameTimeRef.current < frameInterval) {
         animationIdRef.current = requestAnimationFrame(animate);
         return;
@@ -482,7 +560,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
       const { width, height } = canvas;
 
-      // 🎨 렌더링
+      // 렌더링
       drawSkyGradient(ctx, width, height);
       drawClouds(ctx, cloudPositions, width, height);
 

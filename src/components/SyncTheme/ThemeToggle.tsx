@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTheme, useSmartMode } from "./useTheme";
 import type { WeatherType, TimeOfDay } from "./theme.types";
 
@@ -10,14 +10,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   variant = "full",
 }) => {
   const { currentTheme, setTheme, setWeather, setTimeOfDay } = useTheme();
-  const {
-    isSmartMode,
-    isLoading,
-    error,
-    locationInfo,
-    toggleSmartMode,
-    updateSmartTheme, // 테스트용 수동 업데이트 추가
-  } = useSmartMode();
+  const { isSmartMode, isLoading, error, locationInfo, toggleSmartMode } =
+    useSmartMode();
 
   const weathers: WeatherType[] = [
     "sunny",
@@ -179,7 +173,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         </div>
       </div>
 
-      {/* 🤖 스마트 모드 (통합된 자동 기능) */}
+      {/* 스마트 모드 버튼 - 클릭 시 즉시 동기화 */}
       <div style={{ marginBottom: "16px" }}>
         <button
           onClick={toggleSmartMode}
@@ -208,7 +202,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                   animation: "spin 1s linear infinite",
                 }}
               />
-              Updating...
+              {isSmartMode ? "Syncing..." : "Activating..."}
             </>
           ) : (
             <>
@@ -217,24 +211,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             </>
           )}
         </button>
-
-        {/* 🧪 테스트 버튼 (스마트 모드 활성화시만 표시) */}
-        {isSmartMode && !isLoading && (
-          <button
-            onClick={updateSmartTheme}
-            style={{
-              ...buttonStyle,
-              background: `linear-gradient(135deg, #3B82F6, #1D4ED8)`,
-              width: "100%",
-              justifyContent: "center",
-              padding: "8px",
-              fontSize: "12px",
-              marginTop: "8px",
-            }}
-          >
-            🧪 Test Smart Update
-          </button>
-        )}
 
         {/* 스마트 모드 설명 */}
         <div
@@ -247,8 +223,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           }}
         >
           {isSmartMode
-            ? "🕐 Auto time + 🌍 Real weather sync"
-            : "Enable for automatic time & weather updates"}
+            ? "Real-time weather + location sync active"
+            : "Click to sync with real weather & time"}
         </div>
 
         {/* 위치 정보 표시 */}
@@ -284,16 +260,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             }}
           >
             ⚠️ {error}
-            {error.includes("API key") && (
-              <div style={{ marginTop: "4px", fontSize: "10px" }}>
-                💡 Add REACT_APP_OPENWEATHER_API_KEY to .env file
-              </div>
-            )}
-            {error.includes("Location") && (
-              <div style={{ marginTop: "4px", fontSize: "10px" }}>
-                💡 Allow location access in browser settings
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -416,7 +382,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             opacity: 0.6,
           }}
         >
-          Disable Smart Mode to use manual controls
+          Turn off Smart Mode to use manual controls
         </div>
       )}
 

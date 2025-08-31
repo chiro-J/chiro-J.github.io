@@ -39,10 +39,11 @@ const MainContent: React.FC = () => {
           style={{
             fontSize: "clamp(2rem, 4vw, 3.5rem)",
             margin: "0 0 16px 0",
-            background: `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary}, ${currentTheme.colors.accent})`,
+            backgroundImage: `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary}, ${currentTheme.colors.accent})`,
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
+            color: "transparent", // 백업 색상
             filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
             fontWeight: "700",
             letterSpacing: "-0.02em",
@@ -68,7 +69,7 @@ const MainContent: React.FC = () => {
       {/* 현재 테마 정보 카드 */}
       <div
         style={{
-          background: `rgba(0, 0, 0, 0.15)`,
+          backgroundColor: `rgba(0, 0, 0, 0.15)`,
           backdropFilter: "blur(20px)",
           border: `1px solid rgba(255, 255, 255, 0.2)`,
           borderRadius: "24px",
@@ -101,7 +102,7 @@ const MainContent: React.FC = () => {
         >
           <div
             style={{
-              background: `rgba(255, 255, 255, 0.08)`,
+              backgroundColor: `rgba(255, 255, 255, 0.08)`,
               padding: "20px",
               borderRadius: "16px",
               border: `1px solid rgba(255, 255, 255, 0.1)`,
@@ -135,7 +136,7 @@ const MainContent: React.FC = () => {
 
           <div
             style={{
-              background: `rgba(255, 255, 255, 0.08)`,
+              backgroundColor: `rgba(255, 255, 255, 0.08)`,
               padding: "20px",
               borderRadius: "16px",
               border: `1px solid rgba(255, 255, 255, 0.1)`,
@@ -249,7 +250,7 @@ const MainContent: React.FC = () => {
       {/* Premium 테스트 섹션 */}
       <div
         style={{
-          background: `rgba(0, 0, 0, 0.1)`,
+          backgroundColor: `rgba(0, 0, 0, 0.1)`,
           backdropFilter: "blur(15px)",
           border: `1px solid rgba(255, 255, 255, 0.15)`,
           borderRadius: "20px",
@@ -321,7 +322,7 @@ const EffectBadge: React.FC<{ icon: string; text: string }> = ({
 }) => (
   <div
     style={{
-      background: `rgba(255, 255, 255, 0.15)`,
+      backgroundColor: `rgba(255, 255, 255, 0.15)`,
       padding: "8px 12px",
       borderRadius: "20px",
       fontSize: "12px",
@@ -350,7 +351,7 @@ const FeatureCard: React.FC<{
   return (
     <div
       style={{
-        background: `rgba(0, 0, 0, 0.2)`,
+        backgroundColor: `rgba(0, 0, 0, 0.2)`,
         backdropFilter: "blur(20px)",
         border: `1px solid rgba(255, 255, 255, 0.15)`,
         borderRadius: "20px",
@@ -377,7 +378,7 @@ const FeatureCard: React.FC<{
           left: 0,
           right: 0,
           height: "4px",
-          background: `linear-gradient(90deg, ${gradient[0]}, ${gradient[1]})`,
+          backgroundImage: `linear-gradient(90deg, ${gradient[0]}, ${gradient[1]})`,
           borderRadius: "20px 20px 0 0",
         }}
       />
@@ -485,7 +486,7 @@ const QuickTestButtons: React.FC = () => {
             padding: "20px 16px",
             border: `1px solid rgba(255, 255, 255, 0.1)`,
             borderRadius: "16px",
-            background: `linear-gradient(135deg, ${test.gradient[0]}20, ${test.gradient[1]}20)`,
+            backgroundImage: `linear-gradient(135deg, ${test.gradient[0]}20, ${test.gradient[1]}20)`,
             backdropFilter: "blur(10px)",
             color: "inherit",
             cursor: "pointer",
@@ -498,12 +499,12 @@ const QuickTestButtons: React.FC = () => {
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "translateY(-4px) scale(1.02)";
             e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)";
-            e.currentTarget.style.background = `linear-gradient(135deg, ${test.gradient[0]}30, ${test.gradient[1]}30)`;
+            e.currentTarget.style.backgroundImage = `linear-gradient(135deg, ${test.gradient[0]}30, ${test.gradient[1]}30)`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = "translateY(0) scale(1)";
             e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)";
-            e.currentTarget.style.background = `linear-gradient(135deg, ${test.gradient[0]}20, ${test.gradient[1]}20)`;
+            e.currentTarget.style.backgroundImage = `linear-gradient(135deg, ${test.gradient[0]}20, ${test.gradient[1]}20)`;
           }}
         >
           <div style={{ fontSize: "2rem", marginBottom: "8px" }}>
