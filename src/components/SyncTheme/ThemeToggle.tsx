@@ -21,7 +21,53 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   } = useSmartMode();
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date()); // 실시간 시계용 상태
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 간단한 페이드 효과를 위한 상태
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // 부드러운 전환 함수들
+  const smoothSetWeather = (weather: WeatherType) => {
+    if (isTransitioning || isSmartMode) return;
+
+    setIsTransitioning(true);
+
+    // 0.3초 페이드 아웃
+    setTimeout(() => {
+      setWeather(weather);
+
+      // 0.3초 후 페이드 인
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 300);
+    }, 300);
+  };
+
+  const smoothSetTimeOfDay = (timeOfDay: TimeOfDay) => {
+    if (isTransitioning || isSmartMode) return;
+
+    setIsTransitioning(true);
+
+    setTimeout(() => {
+      setTimeOfDay(timeOfDay);
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 300);
+    }, 300);
+  };
+
+  const smoothSetTheme = (weather: WeatherType, timeOfDay: TimeOfDay) => {
+    if (isTransitioning || isSmartMode) return;
+
+    setIsTransitioning(true);
+
+    setTimeout(() => {
+      setTheme(weather, timeOfDay);
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 300);
+    }, 300);
+  };
 
   // 실시간 시계 업데이트 (1초마다)
   useEffect(() => {
@@ -78,7 +124,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
     maxWidth: variant === "compact" ? "240px" : "420px",
     color: currentTheme.colors.text.primary,
-    transition: "all 0.3s ease",
+    transition: "all 0.6s ease", // 전환 효과 추가
+    opacity: isTransitioning ? 0.5 : 1, // 페이드 효과
   };
 
   const buttonStyle: React.CSSProperties = {
@@ -124,10 +171,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   // 스마트 모드 토글 (단순화)
   const handleSmartModeToggle = () => {
     if (!isSmartMode) {
-      // OFF → ON: 즉시 완전 동기화
       toggleSmartMode();
     } else {
-      // ON → OFF: 테스트 모드로 전환
       toggleSmartMode();
     }
   };
@@ -138,9 +183,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <select
             value={currentTheme.weather}
-            onChange={(e) => setWeather(e.target.value as WeatherType)}
+            onChange={(e) => smoothSetWeather(e.target.value as WeatherType)}
             style={selectStyle}
-            disabled={isSmartMode}
+            disabled={isSmartMode || isTransitioning}
           >
             {weathers.map((weather) => (
               <option key={weather} value={weather}>
@@ -150,9 +195,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           </select>
           <select
             value={currentTheme.timeOfDay}
-            onChange={(e) => setTimeOfDay(e.target.value as TimeOfDay)}
+            onChange={(e) => smoothSetTimeOfDay(e.target.value as TimeOfDay)}
             style={selectStyle}
-            disabled={isSmartMode}
+            disabled={isSmartMode || isTransitioning}
           >
             {times.map((time) => (
               <option key={time} value={time}>
@@ -197,7 +242,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               cursor: "pointer",
             }}
           >
-            🐛 {showDebugPanel ? "Hide" : "Debug"}
+            🛠 {showDebugPanel ? "Hide" : "Debug"}
           </button>
         </h3>
 
@@ -209,7 +254,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             marginBottom: "8px",
           }}
         >
-          🕒 Local Time: {getCurrentTimeString()}
+          🕐 Local Time: {getCurrentTimeString()}
         </div>
 
         {/* 현재 테마 표시 */}
@@ -220,6 +265,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             borderRadius: "12px",
             marginBottom: "16px",
             border: `1px solid rgba(255, 255, 255, 0.1)`,
+            transition: "all 0.6s ease", // 색상 전환 효과
           }}
         >
           <div style={{ fontWeight: "600", marginBottom: "8px" }}>
@@ -229,6 +275,23 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             {weatherEmojis[currentTheme.weather]}{" "}
             {timeEmojis[currentTheme.timeOfDay]}
           </div>
+
+          {/* 전환 중 표시 */}
+          {isTransitioning && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: currentTheme.colors.accent,
+                marginTop: "8px",
+                padding: "4px 8px",
+                background: "rgba(255, 255, 255, 0.1)",
+                borderRadius: "12px",
+                animation: "pulse 1s infinite",
+              }}
+            >
+              🔄 Smooth transition in progress...
+            </div>
+          )}
 
           {/* 위치 정보 (스마트 모드 시) */}
           {isSmartMode && locationInfo.city && (
@@ -256,12 +319,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             >
               {locationInfo.method === "gps" ? "🎯" : "📍"}
               {locationInfo.city}, {locationInfo.country}
-              {locationInfo.coordinates && (
-                <span style={{ fontSize: "9px", opacity: 0.6 }}>
-                  ({locationInfo.coordinates.lat.toFixed(2)},{" "}
-                  {locationInfo.coordinates.lon.toFixed(2)})
-                </span>
-              )}
             </div>
           )}
         </div>
@@ -409,16 +466,21 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 fontWeight: "500",
               }}
             >
-              Weather
+              Weather {isTransitioning && "(Transitioning...)"}
             </h4>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
               {weathers.map((weather) => (
                 <button
                   key={weather}
-                  onClick={() => setWeather(weather)}
+                  onClick={() => smoothSetWeather(weather)}
+                  disabled={isTransitioning}
                   style={{
                     ...buttonStyle,
-                    opacity: currentTheme.weather === weather ? 1 : 0.6,
+                    opacity: isTransitioning
+                      ? 0.4
+                      : currentTheme.weather === weather
+                      ? 1
+                      : 0.6,
                     transform:
                       currentTheme.weather === weather
                         ? "scale(1.05)"
@@ -429,6 +491,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                       currentTheme.weather === weather
                         ? `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`
                         : `rgba(255, 255, 255, 0.15)`,
+                    cursor: isTransitioning ? "not-allowed" : "pointer",
                   }}
                 >
                   {weatherEmojis[weather]} {weather}
@@ -447,16 +510,21 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 fontWeight: "500",
               }}
             >
-              Time of Day
+              Time of Day {isTransitioning && "(Transitioning...)"}
             </h4>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
               {times.map((time) => (
                 <button
                   key={time}
-                  onClick={() => setTimeOfDay(time)}
+                  onClick={() => smoothSetTimeOfDay(time)}
+                  disabled={isTransitioning}
                   style={{
                     ...buttonStyle,
-                    opacity: currentTheme.timeOfDay === time ? 1 : 0.6,
+                    opacity: isTransitioning
+                      ? 0.4
+                      : currentTheme.timeOfDay === time
+                      ? 1
+                      : 0.6,
                     transform:
                       currentTheme.timeOfDay === time
                         ? "scale(1.05)"
@@ -467,6 +535,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                       currentTheme.timeOfDay === time
                         ? `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`
                         : `rgba(255, 255, 255, 0.15)`,
+                    cursor: isTransitioning ? "not-allowed" : "pointer",
                   }}
                 >
                   {timeEmojis[time]} {time}
@@ -480,43 +549,29 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       {/* 랜덤 테마 */}
       <button
         onClick={() => {
-          if (!isSmartMode) {
+          if (!isSmartMode && !isTransitioning) {
             const randomWeather =
               weathers[Math.floor(Math.random() * weathers.length)];
             const randomTime = times[Math.floor(Math.random() * times.length)];
-            setTheme(randomWeather, randomTime);
+            smoothSetTheme(randomWeather, randomTime);
           }
         }}
-        disabled={isSmartMode}
+        disabled={isSmartMode || isTransitioning}
         style={{
           ...buttonStyle,
           width: "100%",
-          background: isSmartMode
-            ? `rgba(107, 114, 128, 0.5)`
-            : `linear-gradient(135deg, #EC4899, #BE185D)`,
+          background:
+            isSmartMode || isTransitioning
+              ? `rgba(107, 114, 128, 0.5)`
+              : `linear-gradient(135deg, #EC4899, #BE185D)`,
           justifyContent: "center",
           fontWeight: "600",
-          cursor: isSmartMode ? "not-allowed" : "pointer",
-          opacity: isSmartMode ? 0.5 : 1,
+          cursor: isSmartMode || isTransitioning ? "not-allowed" : "pointer",
+          opacity: isSmartMode || isTransitioning ? 0.5 : 1,
         }}
       >
-        🎲 Random Theme
+        🎲 {isTransitioning ? "Transitioning..." : "Random Theme"}
       </button>
-
-      {/* 랜덤 버튼 설명 */}
-      {isSmartMode && (
-        <div
-          style={{
-            fontSize: "10px",
-            color: currentTheme.colors.text.secondary,
-            textAlign: "center",
-            marginTop: "4px",
-            opacity: 0.6,
-          }}
-        >
-          Turn off Smart Mode to use manual controls
-        </div>
-      )}
 
       {/* CSS 애니메이션 */}
       <style
@@ -525,6 +580,11 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
           }
         `,
         }}

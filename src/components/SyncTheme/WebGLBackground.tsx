@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
-import { useTheme } from "./useTheme";
+import { useTheme, useSmartMode } from "./useTheme";
 import type { WeatherType, TimeOfDay } from "./theme.types";
 
 interface CanvasBackgroundProps {
@@ -19,7 +19,7 @@ interface Cloud {
   y: number;
   scale: number;
   speed: number;
-  opacity: number; // 구름 투명도 추가
+  opacity: number;
 }
 
 interface Particle {
@@ -30,15 +30,45 @@ interface Particle {
   size: number;
 }
 
+interface CelestialPosition {
+  x: number;
+  y: number;
+  visible: boolean;
+  phase: number; // 0-1, 해/달의 궤도상 진행률
+}
+
 export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   className,
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { currentTheme } = useTheme();
+  const { locationInfo } = useSmartMode();
   const animationIdRef = useRef<number>();
   const clockRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
+  const celestialUpdateRef = useRef<number>(0);
+
+  // 실제 일출/일몰 데이터를 위한 상태
+  const [sunriseData, setSunriseData] = useState<{
+    sunrise: Date;
+    sunset: Date;
+    date: string;
+  } | null>(null);
+
+  // 실시간 해/달 위치를 ref로 관리 (리렌더링 방지)
+  const realtimeSunPositionRef = useRef<CelestialPosition>({
+    x: 0,
+    y: 0,
+    visible: false,
+    phase: 0,
+  });
+  const realtimeMoonPositionRef = useRef<CelestialPosition>({
+    x: 0,
+    y: 0,
+    visible: false,
+    phase: 0,
+  });
 
   // 모바일 감지 및 성능 설정
   const isMobile = useMemo(() => {
@@ -55,47 +85,35 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
     switch (weather) {
       case "sunny":
-        return {
-          count: Math.floor(baseCount * 0.5), // 절반으로 줄임
-          opacity: 0.6,
-          speed: 0.05,
-        };
+        return { count: Math.floor(baseCount * 1), opacity: 0.6, speed: 0.05 };
       case "cloudy":
-        return {
-          count: Math.floor(baseCount * 2.5), // 2.5배 증가
-          opacity: 0.9,
-          speed: 0.08,
-        };
+        return { count: Math.floor(baseCount * 10), opacity: 0.9, speed: 0.08 };
       case "rainy":
         return {
-          count: Math.floor(baseCount * 2), // 2배 증가
+          count: Math.floor(baseCount * 15),
           opacity: 0.85,
           speed: 0.12,
         };
       case "stormy":
         return {
-          count: Math.floor(baseCount * 4), // 4배 증가 (엄청 많이)
+          count: Math.floor(baseCount * 30),
           opacity: 0.95,
           speed: 0.15,
         };
       case "snowy":
         return {
-          count: Math.floor(baseCount * 3), // 3배 증가 (눈구름)
+          count: Math.floor(baseCount * 15),
           opacity: 0.85,
           speed: 0.07,
         };
       case "foggy":
         return {
-          count: Math.floor(baseCount * 1.8), // 1.8배 증가
+          count: Math.floor(baseCount * 0.5),
           opacity: 0.7,
           speed: 0.04,
         };
       default:
-        return {
-          count: baseCount,
-          opacity: 0.8,
-          speed: 0.08,
-        };
+        return { count: baseCount, opacity: 0.8, speed: 0.08 };
     }
   };
 
@@ -121,73 +139,199 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   const [cloudPositions, setCloudPositions] = useState<Cloud[]>([]);
   const [particlePositions, setParticlePositions] = useState<Particle[]>([]);
 
-  // 천체 가시성
-  const getCelestialVisibility = (timeOfDay: TimeOfDay) => {
-    switch (timeOfDay) {
-      case "dawn":
-        return { sun: true, moon: true, stars: true };
-      case "morning":
-      case "afternoon":
-        return { sun: true, moon: false, stars: false };
-      case "evening":
-        return { sun: false, moon: true, stars: true };
-      case "night":
-        return { sun: false, moon: true, stars: true };
-      default:
-        return { sun: true, moon: false, stars: false };
+  // 실제 일출/일몰 데이터 가져오기
+  const fetchSunriseData = async (lat: number, lon: number) => {
+    const today = new Date().toISOString().split("T")[0];
+
+    // 오늘 데이터가 이미 있으면 재사용
+    if (sunriseData && sunriseData.date === today) {
+      return sunriseData;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&formatted=0&date=${today}`
+      );
+      const data = await response.json();
+
+      if (data.status === "OK") {
+        const newSunriseData = {
+          sunrise: new Date(data.results.sunrise),
+          sunset: new Date(data.results.sunset),
+          date: today,
+        };
+
+        setSunriseData(newSunriseData);
+        console.log("🌅 Real sunrise data loaded:", {
+          sunrise: newSunriseData.sunrise.toLocaleTimeString("ko-KR"),
+          sunset: newSunriseData.sunset.toLocaleTimeString("ko-KR"),
+        });
+
+        return newSunriseData;
+      }
+      throw new Error("Sunrise API failed");
+    } catch (error) {
+      console.log("⚠️ Sunrise API error, using fallback times:", error);
+      return null;
     }
   };
 
-  // 위치 계산
-  const getSunPosition = (timeOfDay: TimeOfDay, canvas: HTMLCanvasElement) => {
+  // 실시간 천체 위치 계산 함수 (실제 일출/일몰 데이터 사용)
+  const calculateRealtimeCelestialPositions = (canvas: HTMLCanvasElement) => {
+    const now = new Date();
+    const currentMinutes =
+      now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
     const { width, height } = canvas;
-    const centerY = height * 0.25;
 
-    switch (timeOfDay) {
-      case "dawn":
-        return { x: width * 0.2, y: centerY + 40 };
-      case "morning":
-        return { x: width * 0.35, y: centerY - 20 };
-      case "afternoon":
-        return { x: width * 0.65, y: centerY - 20 };
-      default:
-        return { x: width * 0.8, y: centerY + 40 };
+    // 실제 일출/일몰 시간 사용 (데이터가 있으면)
+    let sunriseMinutes = 6 * 60; // 기본값: 6:00 AM
+    let sunsetMinutes = 18 * 60; // 기본값: 6:00 PM
+
+    if (sunriseData) {
+      sunriseMinutes =
+        sunriseData.sunrise.getHours() * 60 + sunriseData.sunrise.getMinutes();
+      sunsetMinutes =
+        sunriseData.sunset.getHours() * 60 + sunriseData.sunset.getMinutes();
+
+      console.log("🌅 Using real sunrise/sunset data:", {
+        sunrise: `${Math.floor(sunriseMinutes / 60)}:${(sunriseMinutes % 60)
+          .toString()
+          .padStart(2, "0")}`,
+        sunset: `${Math.floor(sunsetMinutes / 60)}:${(sunsetMinutes % 60)
+          .toString()
+          .padStart(2, "0")}`,
+        current: `${Math.floor(currentMinutes / 60)}:${(currentMinutes % 60)
+          .toString()
+          .padStart(2, "0")}`,
+      });
+    } else {
+      console.log("🌅 Using fallback sunrise/sunset times (6:00-18:00)");
     }
+
+    const isDayTime =
+      currentMinutes >= sunriseMinutes && currentMinutes <= sunsetMinutes;
+
+    // 태양 위치 계산
+    let sunPosition: CelestialPosition;
+    if (isDayTime) {
+      const dayProgress =
+        (currentMinutes - sunriseMinutes) / (sunsetMinutes - sunriseMinutes);
+      const sunAngle = Math.PI * dayProgress; // 0 to π (반원 호)
+
+      sunPosition = {
+        x: width * (0.1 + 0.8 * dayProgress), // 왼쪽 10%에서 오른쪽 90%로
+        y: height * (0.35 - 0.2 * Math.sin(sunAngle)), // 지평선에서 최고점까지 호 궤도
+        visible: true,
+        phase: dayProgress,
+      };
+    } else {
+      sunPosition = { x: 0, y: 0, visible: false, phase: 0 };
+    }
+
+    // 달 위치 계산
+    let moonPosition: CelestialPosition;
+    if (!isDayTime) {
+      let nightProgress;
+      const totalNightDuration = 24 * 60 - (sunsetMinutes - sunriseMinutes);
+
+      if (currentMinutes < sunriseMinutes) {
+        // 자정 이후부터 일출까지
+        nightProgress =
+          (currentMinutes + (24 * 60 - sunsetMinutes)) / totalNightDuration;
+      } else {
+        // 일몰 이후부터 자정까지
+        nightProgress = (currentMinutes - sunsetMinutes) / totalNightDuration;
+      }
+
+      const moonAngle = Math.PI * nightProgress;
+
+      moonPosition = {
+        x: width * (0.1 + 0.8 * nightProgress),
+        y: height * (0.3 - 0.15 * Math.sin(moonAngle)),
+        visible: true,
+        phase: nightProgress,
+      };
+    } else {
+      // 낮 시간에도 달이 보일 수 있음 (dawn/dusk)
+      const isDawnOrDusk =
+        currentMinutes < sunriseMinutes + 60 ||
+        currentMinutes > sunsetMinutes - 60;
+
+      if (isDawnOrDusk) {
+        moonPosition = {
+          x: width * 0.8,
+          y: height * 0.25,
+          visible: true,
+          phase: 0.8,
+        };
+      } else {
+        moonPosition = { x: 0, y: 0, visible: false, phase: 0 };
+      }
+    }
+
+    return { sunPosition, moonPosition };
   };
 
-  const getMoonPosition = (timeOfDay: TimeOfDay, canvas: HTMLCanvasElement) => {
-    const { width, height } = canvas;
-    const centerY = height * 0.2;
-
-    switch (timeOfDay) {
-      case "dawn":
-        return { x: width * 0.75, y: centerY };
-      case "evening":
-        return { x: width * 0.25, y: centerY };
-      case "night":
-        return { x: width * 0.5, y: centerY - 30 };
-      default:
-        return { x: width * 0.5, y: centerY };
+  // 위치 정보가 있을 때 실제 일출/일몰 데이터 가져오기
+  useEffect(() => {
+    if (locationInfo.coordinates) {
+      const { lat, lon } = locationInfo.coordinates;
+      fetchSunriseData(lat, lon);
+      console.log(
+        `🌍 Location available: ${lat.toFixed(2)}, ${lon.toFixed(
+          2
+        )} - Fetching sunrise data`
+      );
     }
+  }, [locationInfo.coordinates]);
+
+  // 초기 천체 위치 설정만 (깜빡임 방지)
+  useEffect(() => {
+    if (canvasRef.current) {
+      const positions = calculateRealtimeCelestialPositions(canvasRef.current);
+      realtimeSunPositionRef.current = positions.sunPosition;
+      realtimeMoonPositionRef.current = positions.moonPosition;
+    }
+  }, [sunriseData]); // 일출/일몰 데이터 변경시에만 초기화
+
+  // 천체 가시성 (ref 기반으로 실시간 계산)
+  const getCelestialVisibility = () => {
+    const now = new Date();
+    const hour = now.getHours();
+
+    // 별의 가시성은 시간대별로 결정
+    const starsVisible = hour < 7 || hour > 18;
+
+    return {
+      sun: realtimeSunPositionRef.current.visible,
+      moon: realtimeMoonPositionRef.current.visible,
+      stars: starsVisible,
+    };
   };
 
-  // 해 그리기
-  const drawSun = (
+  // 향상된 해 그리기 (실시간 위치와 단계 반영)
+  const drawRealtimeSun = (
     ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    timeOfDay: TimeOfDay
+    position: CelestialPosition
   ) => {
-    const isGoldenHour = timeOfDay === "dawn" || timeOfDay === "evening";
-    const sunColor = isGoldenHour ? "#FF8C42" : "#FFD700";
+    if (!position.visible) return;
+
+    const { x, y, phase } = position;
+
+    // 시간에 따른 색상 변화
+    const isEarlyOrLate = phase < 0.2 || phase > 0.8;
+    const sunColor = isEarlyOrLate ? "#FF8C42" : "#FFD700";
+    const intensity = Math.sin(Math.PI * phase); // 정오에 가장 밝음
 
     ctx.save();
 
-    // 광선
-    const rayRotation = clockRef.current * 0.001;
-    for (let i = 0; i < 8; i++) {
-      const angle = ((i * 45 + rayRotation * 10) * Math.PI) / 180;
-      const rayLength = 45;
+    // 동적 광선 (시간에 따라 각도와 강도 변화)
+    const rayRotation = clockRef.current * 0.001 + phase * Math.PI;
+    const rayCount = Math.floor(8 + intensity * 4); // 강도에 따라 광선 수 변화
+
+    for (let i = 0; i < rayCount; i++) {
+      const angle = ((i * (360 / rayCount) + rayRotation * 10) * Math.PI) / 180;
+      const rayLength = 30 + intensity * 20; // 강도에 따라 광선 길이 변화
 
       const gradient = ctx.createLinearGradient(
         x,
@@ -195,11 +339,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         x + Math.cos(angle) * rayLength,
         y + Math.sin(angle) * rayLength
       );
-      gradient.addColorStop(0, `rgba(255, 212, 0, 0.4)`);
+      gradient.addColorStop(0, `rgba(255, 212, 0, ${intensity * 0.6})`);
       gradient.addColorStop(1, `rgba(255, 212, 0, 0)`);
 
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5 + intensity;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(
@@ -209,43 +353,60 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       ctx.stroke();
     }
 
-    // 외부 글로우
-    const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 50);
-    glowGradient.addColorStop(0, `rgba(255, 212, 0, 0.2)`);
+    // 외부 글로우 (강도에 따라 크기 변화)
+    const glowSize = 40 + intensity * 20;
+    const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
+    glowGradient.addColorStop(0, `rgba(255, 212, 0, ${intensity * 0.3})`);
     glowGradient.addColorStop(1, "rgba(255, 212, 0, 0)");
 
     ctx.fillStyle = glowGradient;
     ctx.beginPath();
-    ctx.arc(x, y, 50, 0, Math.PI * 2);
+    ctx.arc(x, y, glowSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // 메인 해
-    const sunGradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, 18);
+    // 메인 해 (크기도 시간에 따라 약간 변화)
+    const sunSize = 16 + intensity * 4;
+    const sunGradient = ctx.createRadialGradient(
+      x - 3,
+      y - 3,
+      0,
+      x,
+      y,
+      sunSize
+    );
     sunGradient.addColorStop(0, "#FFFF99");
     sunGradient.addColorStop(0.8, sunColor);
-    sunGradient.addColorStop(1, isGoldenHour ? "#CC5500" : "#E6AC00");
+    sunGradient.addColorStop(1, isEarlyOrLate ? "#CC5500" : "#E6AC00");
 
     ctx.fillStyle = sunGradient;
     ctx.beginPath();
-    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.arc(x, y, sunSize, 0, Math.PI * 2);
     ctx.fill();
 
     // 하이라이트
-    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.5})`;
     ctx.beginPath();
-    ctx.arc(x - 5, y - 5, 8, 0, Math.PI * 2);
+    ctx.arc(x - 3, y - 3, 6, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
   };
 
-  // 달 그리기
-  const drawMoon = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+  // 향상된 달 그리기 (실시간 위치와 위상 반영)
+  const drawRealtimeMoon = (
+    ctx: CanvasRenderingContext2D,
+    position: CelestialPosition
+  ) => {
+    if (!position.visible) return;
+
+    const { x, y, phase } = position;
+
     ctx.save();
 
-    // 달빛 글로우
+    // 달빛 글로우 (위상에 따라 강도 변화)
+    const glowIntensity = 0.2 + Math.sin(Math.PI * phase) * 0.2;
     const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 40);
-    glowGradient.addColorStop(0, "rgba(230, 230, 250, 0.3)");
+    glowGradient.addColorStop(0, `rgba(230, 230, 250, ${glowIntensity})`);
     glowGradient.addColorStop(1, "rgba(230, 230, 250, 0)");
 
     ctx.fillStyle = glowGradient;
@@ -253,25 +414,41 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.arc(x, y, 40, 0, Math.PI * 2);
     ctx.fill();
 
-    // 메인 달
-    const moonGradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, 15);
+    // 메인 달 (크기 약간 변화)
+    const moonSize = 13 + Math.sin(Math.PI * phase) * 3;
+    const moonGradient = ctx.createRadialGradient(
+      x - 2,
+      y - 2,
+      0,
+      x,
+      y,
+      moonSize
+    );
     moonGradient.addColorStop(0, "#FFFFFF");
     moonGradient.addColorStop(0.8, "#E6E6FA");
     moonGradient.addColorStop(1, "#CCCCCC");
 
     ctx.fillStyle = moonGradient;
     ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.arc(x, y, moonSize, 0, Math.PI * 2);
     ctx.fill();
+
+    // 달의 위상 표현 (간단한 그림자)
+    if (phase < 0.5) {
+      ctx.fillStyle = "rgba(100, 100, 100, 0.3)";
+      ctx.beginPath();
+      ctx.arc(x + 2, y, moonSize * (1 - phase * 2), 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // 크레이터
-    ctx.fillStyle = "rgba(180, 180, 180, 0.3)";
+    ctx.fillStyle = `rgba(180, 180, 180, ${0.2 + glowIntensity})`;
     ctx.beginPath();
-    ctx.arc(x + 3, y - 2, 2, 0, Math.PI * 2);
+    ctx.arc(x + 2, y - 1, 1.5, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(x - 1, y + 5, 1.5, 0, Math.PI * 2);
+    ctx.arc(x - 1, y + 3, 1, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -294,7 +471,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.restore();
   };
 
-  // 날씨별 구름 그리기 (밀도 조정)
+  // 구름 그리기
   const drawClouds = (
     ctx: CanvasRenderingContext2D,
     clouds: Cloud[],
@@ -304,24 +481,23 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     const getCloudColor = () => {
       switch (currentTheme.weather) {
         case "stormy":
-          return "rgba(60, 60, 60, 0.95)"; // 매우 어두운 폭풍구름
+          return "rgba(60, 60, 60, 0.95)";
         case "rainy":
-          return "rgba(120, 120, 120, 0.85)"; // 어두운 비구름
+          return "rgba(120, 120, 120, 0.85)";
         case "cloudy":
-          return "rgba(180, 180, 180, 0.8)"; // 일반 구름
+          return "rgba(180, 180, 180, 0.8)";
         case "foggy":
-          return "rgba(200, 200, 200, 0.6)"; // 연한 안개구름
+          return "rgba(200, 200, 200, 0.6)";
         default:
           return currentTheme.timeOfDay === "night"
             ? "rgba(200, 200, 220, 0.6)"
-            : "rgba(255, 255, 255, 0.7)"; // 맑은 날 구름
+            : "rgba(255, 255, 255, 0.7)";
       }
     };
 
     ctx.save();
 
     clouds.forEach((cloud, index) => {
-      // 구름 이동
       cloud.x += cloud.speed * performanceConfig.cloudSpeed;
       if (cloud.x > width + 120) cloud.x = -150;
 
@@ -329,26 +505,20 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       const cloudY = cloud.y + Math.sin(clockRef.current * 0.0005 + index) * 3;
       const scale = cloud.scale;
 
-      // 날씨별 구름 색상과 투명도 적용
       ctx.fillStyle = getCloudColor();
       ctx.globalAlpha = cloud.opacity * performanceConfig.cloudOpacity;
 
-      // 구름 모양 (더 볼륨감 있게)
       ctx.beginPath();
-      // 첫 번째 구름 덩어리
       ctx.arc(cloudX, cloudY, 28 * scale, 0, Math.PI * 2);
-      // 두 번째 구름 덩어리 (더 크게)
       ctx.arc(cloudX + 45 * scale, cloudY - 5, 35 * scale, 0, Math.PI * 2);
-      // 세 번째 구름 덩어리
       ctx.arc(cloudX + 85 * scale, cloudY, 25 * scale, 0, Math.PI * 2);
-      // 네 번째 구름 덩어리 (폭풍시 추가)
+
       if (currentTheme.weather === "stormy") {
         ctx.arc(cloudX + 25 * scale, cloudY + 15, 20 * scale, 0, Math.PI * 2);
       }
 
       ctx.fill();
 
-      // 폭풍구름의 경우 추가 그림자 효과
       if (currentTheme.weather === "stormy") {
         ctx.fillStyle = "rgba(40, 40, 40, 0.3)";
         ctx.beginPath();
@@ -358,7 +528,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       }
     });
 
-    ctx.globalAlpha = 1; // 복원
+    ctx.globalAlpha = 1;
     ctx.restore();
   };
 
@@ -377,7 +547,6 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
     particles.forEach((particle) => {
       if (weather === "foggy") {
-        // 안개는 가로로 움직임
         particle.x += particle.vx;
         if (particle.x > width + 50) particle.x = -50;
 
@@ -386,7 +555,6 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        // 다른 날씨는 아래로 떨어짐
         particle.x += particle.vx;
         particle.y += particle.vy;
 
@@ -396,30 +564,27 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         }
 
         if (weather === "snowy") {
-          // 눈은 원으로
           ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
           ctx.beginPath();
           ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
           ctx.fill();
         } else if (weather === "rainy" || weather === "stormy") {
-          // 비는 선으로 - 시간대별 색상 조정
           let rainColor;
 
           if (weather === "stormy") {
             rainColor = "rgba(120, 120, 180, 0.8)";
           } else {
-            // rainy 날씨의 시간대별 색상
             switch (currentTheme.timeOfDay) {
               case "morning":
               case "afternoon":
-                rainColor = "rgba(140, 140, 140, 0.75)"; // 어두운 파란색 (밝은 시간대용)
+                rainColor = "rgba(140, 140, 140, 0.75)";
                 break;
               case "evening":
               case "dawn":
-                rainColor = "rgba(220, 220, 240, 0.9)"; // 중간 밝기
+                rainColor = "rgba(220, 220, 240, 0.9)";
                 break;
               case "night":
-                rainColor = "rgba(220, 220, 240, 0.9)"; // 밝은 색상 (어두운 시간대용)
+                rainColor = "rgba(220, 220, 240, 0.9)";
                 break;
               default:
                 rainColor = "rgba(180, 180, 200, 0.8)";
@@ -427,10 +592,10 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
           }
 
           ctx.strokeStyle = rainColor;
-          ctx.lineWidth = weather === "stormy" ? 1.5 : 1.2; // 빗방울 선 두께 약간 증가
+          ctx.lineWidth = weather === "stormy" ? 1.5 : 1.2;
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
-          ctx.lineTo(particle.x - 25, particle.y - 75);
+          ctx.lineTo(particle.x - 15, particle.y - 75); // 내리는 빗줄기
           ctx.stroke();
         }
       }
@@ -450,7 +615,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
       const time = currentTheme.timeOfDay;
 
       if (weather === "stormy") {
-        return ["#2C3E50", "#34495E"]; // 더 어두운 폭풍 하늘
+        return ["#2C3E50", "#34495E"];
       }
 
       switch (time) {
@@ -479,7 +644,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.fillRect(0, 0, width, height);
   };
 
-  // 초기화 및 날씨별 구름 생성
+  // 초기화
   useEffect(() => {
     const newStars: Star[] = [];
     for (let i = 0; i < performanceConfig.starCount; i++) {
@@ -492,7 +657,6 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     }
     setStarPositions(newStars);
 
-    // 날씨별 구름 생성
     const newClouds: Cloud[] = [];
     for (let i = 0; i < performanceConfig.cloudCount; i++) {
       newClouds.push({
@@ -500,14 +664,10 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
         y: window.innerHeight * 0.15 + Math.random() * window.innerHeight * 0.3,
         scale: Math.random() * 0.4 + 0.6,
         speed: Math.random() * 0.1 + performanceConfig.cloudSpeed,
-        opacity: Math.random() * 0.3 + 0.7, // 구름별 투명도 차이
+        opacity: Math.random() * 0.3 + 0.7,
       });
     }
     setCloudPositions(newClouds);
-
-    console.log(
-      `구름 생성: ${currentTheme.weather} → ${performanceConfig.cloudCount}개`
-    );
   }, [currentTheme.weather, performanceConfig]);
 
   // 날씨별 파티클 생성
@@ -540,8 +700,8 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
           vx: Math.random() * 0.25 - 0.0001,
           vy:
             currentTheme.weather === "snowy"
-              ? Math.random() * 0.5 + 2.2
-              : Math.random() * 2.2 + 22,
+              ? Math.random() * 2.5 + 1
+              : Math.random() * 30 + 70,
           size: Math.random() * 5 + 3,
         });
       }
@@ -569,7 +729,6 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     const frameInterval = 1000 / performanceConfig.targetFPS;
 
     const animate = (currentTime: number) => {
-      // FPS 제한으로 성능 최적화
       if (currentTime - lastFrameTimeRef.current < frameInterval) {
         animationIdRef.current = requestAnimationFrame(animate);
         return;
@@ -580,24 +739,31 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
       const { width, height } = canvas;
 
+      // 매 프레임마다 천체 위치 업데이트 (깜빡임 없는 부드러운 이동)
+      if (clockRef.current % 120 === 0) {
+        // 2초마다 위치 재계산 (60fps 기준)
+        const positions = calculateRealtimeCelestialPositions(canvas);
+        realtimeSunPositionRef.current = positions.sunPosition;
+        realtimeMoonPositionRef.current = positions.moonPosition;
+      }
+
       // 렌더링
       drawSkyGradient(ctx, width, height);
       drawClouds(ctx, cloudPositions, width, height);
 
-      const visibility = getCelestialVisibility(currentTheme.timeOfDay);
+      const visibility = getCelestialVisibility();
 
       if (visibility.stars && starPositions.length > 0) {
         drawStars(ctx, starPositions);
       }
 
+      // 실시간 해/달 그리기
       if (visibility.moon) {
-        const moonPos = getMoonPosition(currentTheme.timeOfDay, canvas);
-        drawMoon(ctx, moonPos.x, moonPos.y);
+        drawRealtimeMoon(ctx, realtimeMoonPositionRef.current);
       }
 
       if (visibility.sun) {
-        const sunPos = getSunPosition(currentTheme.timeOfDay, canvas);
-        drawSun(ctx, sunPos.x, sunPos.y, currentTheme.timeOfDay);
+        drawRealtimeSun(ctx, realtimeSunPositionRef.current);
       }
 
       if (particlePositions.length > 0) {
