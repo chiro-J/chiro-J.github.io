@@ -235,6 +235,7 @@ export const useSmartMode = () => {
 
     return { sunPosition, moonPosition, isDay: isDayTime };
   }, []);
+
   const getWeatherFromCoords = useCallback(
     async (
       lat: number,
@@ -323,7 +324,7 @@ export const useSmartMode = () => {
     return "sunny";
   };
 
-  // 스마트 테마 업데이트 (일괄 업데이트 방식) - useEffect보다 먼저 정의
+  // 스마트 테마 업데이트 (일괄 업데이트 방식) - updateSmartTheme보다 먼저 정의
   const updateSmartTheme = useCallback(
     async (forceSync = false) => {
       console.log("\n=== 🚀 SMART UPDATE START ===");
@@ -350,7 +351,7 @@ export const useSmartMode = () => {
       try {
         // 1. 현재 시간 계산 (UI 업데이트 안함)
         const timeResult = getCurrentTimeOfDayAccurate();
-        console.log("🕐 Time Analysis:", timeResult.reason);
+        console.log("🕒 Time Analysis:", timeResult.reason);
 
         let locationResult = null;
         let weatherResult = null;
@@ -509,11 +510,11 @@ export const useSmartMode = () => {
         console.log("⏰ Auto time update:", timeResult.reason);
       }, 60000); // 1분마다
 
-      // 5분마다 날씨 동기화
+      // 1분마다 날씨 동기화 (테스트용 - 원래는 5분)
       weatherUpdateInterval.current = setInterval(() => {
         console.log("🌤️ Auto weather sync...");
         updateSmartTheme(false); // 자동 동기화는 forceSync = false
-      }, 300000); // 5분마다 (300,000ms)
+      }, 300000); // 1분마다 (테스트용, 원래는 300000ms)
 
       return () => {
         if (timeUpdateInterval.current) {

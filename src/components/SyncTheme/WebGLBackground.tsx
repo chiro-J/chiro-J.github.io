@@ -43,7 +43,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { currentTheme } = useTheme();
-  const { locationInfo } = useSmartMode();
+  const { locationInfo, isSmartMode } = useSmartMode();
   const animationIdRef = useRef<number>();
   const clockRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
@@ -176,137 +176,215 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     }
   };
 
-  // 실시간 천체 위치 계산 함수 (실제 일출/일몰 데이터 사용)
-  const calculateRealtimeCelestialPositions = (canvas: HTMLCanvasElement) => {
-    const now = new Date();
-    const currentMinutes =
-      now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  // 천체 위치 계산 함수 (스마트 모드/테스트 모드 구분 + 모바일 대응)
+  const calculateCelestialPositions = (canvas: HTMLCanvasElement) => {
     const { width, height } = canvas;
 
-    // 실제 일출/일몰 시간 사용 (데이터가 있으면)
-    let sunriseMinutes = 6 * 60; // 기본값: 6:00 AM
-    let sunsetMinutes = 18 * 60; // 기본값: 6:00 PM
+    // 모바일에서 안전한 영역 계산
+    const safeAreaTop = isMobile ? height * 0.15 : height * 0.1; // 모바일에서 더 아래쪽
+    const safeAreaBottom = isMobile ? height * 0.6 : height * 0.5; // 모바일에서 더 위쪽
+    const safeAreaLeft = width * 0.15; // 좌우 15% 여백
+    const safeAreaRight = width * 0.85;
 
-    if (sunriseData) {
-      sunriseMinutes =
-        sunriseData.sunrise.getHours() * 60 + sunriseData.sunrise.getMinutes();
-      sunsetMinutes =
-        sunriseData.sunset.getHours() * 60 + sunriseData.sunset.getMinutes();
+    if (isSmartMode) {
+      // 스마트 모드: 실시간 계산
+      const now = new Date();
+      const currentMinutes =
+        now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 
-      console.log("🌅 Using real sunrise/sunset data:", {
-        sunrise: `${Math.floor(sunriseMinutes / 60)}:${(sunriseMinutes % 60)
-          .toString()
-          .padStart(2, "0")}`,
-        sunset: `${Math.floor(sunsetMinutes / 60)}:${(sunsetMinutes % 60)
-          .toString()
-          .padStart(2, "0")}`,
-        current: `${Math.floor(currentMinutes / 60)}:${(currentMinutes % 60)
-          .toString()
-          .padStart(2, "0")}`,
-      });
-    } else {
-      console.log("🌅 Using fallback sunrise/sunset times (6:00-18:00)");
-    }
+      // 실제 일출/일몰 시간 사용 (데이터가 있으면)
+      let sunriseMinutes = 6 * 60; // 기본값: 6:00 AM
+      let sunsetMinutes = 18 * 60; // 기본값: 6:00 PM
 
-    const isDayTime =
-      currentMinutes >= sunriseMinutes && currentMinutes <= sunsetMinutes;
-
-    // 태양 위치 계산
-    let sunPosition: CelestialPosition;
-    if (isDayTime) {
-      const dayProgress =
-        (currentMinutes - sunriseMinutes) / (sunsetMinutes - sunriseMinutes);
-      const sunAngle = Math.PI * dayProgress; // 0 to π (반원 호)
-
-      sunPosition = {
-        x: width * (0.1 + 0.8 * dayProgress), // 왼쪽 10%에서 오른쪽 90%로
-        y: height * (0.35 - 0.2 * Math.sin(sunAngle)), // 지평선에서 최고점까지 호 궤도
-        visible: true,
-        phase: dayProgress,
-      };
-    } else {
-      sunPosition = { x: 0, y: 0, visible: false, phase: 0 };
-    }
-
-    // 달 위치 계산
-    let moonPosition: CelestialPosition;
-    if (!isDayTime) {
-      let nightProgress;
-      const totalNightDuration = 24 * 60 - (sunsetMinutes - sunriseMinutes);
-
-      if (currentMinutes < sunriseMinutes) {
-        // 자정 이후부터 일출까지
-        nightProgress =
-          (currentMinutes + (24 * 60 - sunsetMinutes)) / totalNightDuration;
-      } else {
-        // 일몰 이후부터 자정까지
-        nightProgress = (currentMinutes - sunsetMinutes) / totalNightDuration;
+      if (sunriseData) {
+        sunriseMinutes =
+          sunriseData.sunrise.getHours() * 60 +
+          sunriseData.sunrise.getMinutes();
+        sunsetMinutes =
+          sunriseData.sunset.getHours() * 60 + sunriseData.sunset.getMinutes();
       }
 
-      const moonAngle = Math.PI * nightProgress;
+      const isDayTime =
+        currentMinutes >= sunriseMinutes && currentMinutes <= sunsetMinutes;
 
-      moonPosition = {
-        x: width * (0.1 + 0.8 * nightProgress),
-        y: height * (0.3 - 0.15 * Math.sin(moonAngle)),
-        visible: true,
-        phase: nightProgress,
-      };
-    } else {
-      // 낮 시간에도 달이 보일 수 있음 (dawn/dusk)
-      const isDawnOrDusk =
-        currentMinutes < sunriseMinutes + 60 ||
-        currentMinutes > sunsetMinutes - 60;
+      // 태양 위치 계산 (모바일 안전 영역 적용)
+      let sunPosition: CelestialPosition;
+      if (isDayTime) {
+        const dayProgress =
+          (currentMinutes - sunriseMinutes) / (sunsetMinutes - sunriseMinutes);
+        const sunAngle = Math.PI * dayProgress;
 
-      if (isDawnOrDusk) {
-        moonPosition = {
-          x: width * 0.8,
-          y: height * 0.25,
+        sunPosition = {
+          x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * dayProgress,
+          y:
+            safeAreaBottom -
+            (safeAreaBottom - safeAreaTop) * Math.sin(sunAngle),
           visible: true,
-          phase: 0.8,
+          phase: dayProgress,
         };
       } else {
-        moonPosition = { x: 0, y: 0, visible: false, phase: 0 };
+        sunPosition = { x: 0, y: 0, visible: false, phase: 0 };
       }
-    }
 
-    return { sunPosition, moonPosition };
+      // 달 위치 계산 (모바일 안전 영역 적용)
+      let moonPosition: CelestialPosition;
+      if (!isDayTime) {
+        let nightProgress;
+        const totalNightDuration = 24 * 60 - (sunsetMinutes - sunriseMinutes);
+
+        if (currentMinutes < sunriseMinutes) {
+          nightProgress =
+            (currentMinutes + (24 * 60 - sunsetMinutes)) / totalNightDuration;
+        } else {
+          nightProgress = (currentMinutes - sunsetMinutes) / totalNightDuration;
+        }
+
+        const moonAngle = Math.PI * nightProgress;
+
+        moonPosition = {
+          x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * nightProgress,
+          y:
+            safeAreaBottom -
+            (safeAreaBottom - safeAreaTop) * 0.8 * Math.sin(moonAngle),
+          visible: true,
+          phase: nightProgress,
+        };
+      } else {
+        const isDawnOrDusk =
+          currentMinutes < sunriseMinutes + 60 ||
+          currentMinutes > sunsetMinutes - 60;
+
+        if (isDawnOrDusk) {
+          moonPosition = {
+            x: safeAreaRight * 0.9,
+            y: safeAreaTop + (safeAreaBottom - safeAreaTop) * 0.3,
+            visible: true,
+            phase: 0.8,
+          };
+        } else {
+          moonPosition = { x: 0, y: 0, visible: false, phase: 0 };
+        }
+      }
+
+      return { sunPosition, moonPosition };
+    } else {
+      // 테스트 모드: 선택된 timeOfDay에 따른 고정 위치 (모바일 안전 영역 적용)
+      const timeOfDay = currentTheme.timeOfDay;
+
+      let sunPosition: CelestialPosition;
+      let moonPosition: CelestialPosition;
+
+      switch (timeOfDay) {
+        case "dawn":
+          sunPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.1, // 동쪽 낮은 위치
+            y: safeAreaBottom - (safeAreaBottom - safeAreaTop) * 0.2,
+            visible: true,
+            phase: 0.1,
+          };
+          moonPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.9, // 서쪽에 희미하게
+            y: safeAreaTop + (safeAreaBottom - safeAreaTop) * 0.3,
+            visible: true,
+            phase: 0.9,
+          };
+          break;
+
+        case "morning":
+          sunPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.25, // 동쪽에서 올라온 상태
+            y: safeAreaTop + (safeAreaBottom - safeAreaTop) * 0.4,
+            visible: true,
+            phase: 0.3,
+          };
+          moonPosition = { x: 0, y: 0, visible: false, phase: 0 };
+          break;
+
+        case "afternoon":
+          sunPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.5, // 정중앙 최고점
+            y: safeAreaTop,
+            visible: true,
+            phase: 0.5,
+          };
+          moonPosition = { x: 0, y: 0, visible: false, phase: 0 };
+          break;
+
+        case "evening":
+          sunPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.75, // 서쪽으로 기울어짐
+            y: safeAreaTop + (safeAreaBottom - safeAreaTop) * 0.6,
+            visible: true,
+            phase: 0.8,
+          };
+          moonPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.2, // 동쪽에 희미하게 나타남
+            y: safeAreaTop + (safeAreaBottom - safeAreaTop) * 0.5,
+            visible: true,
+            phase: 0.2,
+          };
+          break;
+
+        case "night":
+          sunPosition = { x: 0, y: 0, visible: false, phase: 0 };
+          moonPosition = {
+            x: safeAreaLeft + (safeAreaRight - safeAreaLeft) * 0.6, // 하늘 중앙에
+            y: safeAreaTop + (safeAreaBottom - safeAreaTop) * 0.3,
+            visible: true,
+            phase: 0.5,
+          };
+          break;
+
+        default:
+          sunPosition = { x: 0, y: 0, visible: false, phase: 0 };
+          moonPosition = { x: 0, y: 0, visible: false, phase: 0 };
+      }
+
+      return { sunPosition, moonPosition };
+    }
   };
 
-  // 위치 정보가 있을 때 실제 일출/일몰 데이터 가져오기
-  useEffect(() => {
-    if (locationInfo.coordinates) {
-      const { lat, lon } = locationInfo.coordinates;
-      fetchSunriseData(lat, lon);
-      console.log(
-        `🌍 Location available: ${lat.toFixed(2)}, ${lon.toFixed(
-          2
-        )} - Fetching sunrise data`
-      );
-    }
-  }, [locationInfo.coordinates]);
-
-  // 초기 천체 위치 설정만 (깜빡임 방지)
+  // 초기 천체 위치 설정 (스마트 모드/테스트 모드 구분)
   useEffect(() => {
     if (canvasRef.current) {
-      const positions = calculateRealtimeCelestialPositions(canvasRef.current);
+      const positions = calculateCelestialPositions(canvasRef.current);
       realtimeSunPositionRef.current = positions.sunPosition;
       realtimeMoonPositionRef.current = positions.moonPosition;
     }
-  }, [sunriseData]); // 일출/일몰 데이터 변경시에만 초기화
+  }, [sunriseData, currentTheme.timeOfDay]); // timeOfDay 변경시에도 초기화
 
-  // 천체 가시성 (ref 기반으로 실시간 계산)
+  // 천체 가시성 (스마트 모드/테스트 모드 구분)
   const getCelestialVisibility = () => {
-    const now = new Date();
-    const hour = now.getHours();
+    if (isSmartMode) {
+      // 스마트 모드: 실제 시간 기반
+      const now = new Date();
+      const hour = now.getHours();
+      const starsVisible = hour < 7 || hour > 18;
 
-    // 별의 가시성은 시간대별로 결정
-    const starsVisible = hour < 7 || hour > 18;
+      return {
+        sun: realtimeSunPositionRef.current.visible,
+        moon: realtimeMoonPositionRef.current.visible,
+        stars: starsVisible,
+      };
+    } else {
+      // 테스트 모드: 선택된 timeOfDay 기반
+      const timeOfDay = currentTheme.timeOfDay;
 
-    return {
-      sun: realtimeSunPositionRef.current.visible,
-      moon: realtimeMoonPositionRef.current.visible,
-      stars: starsVisible,
-    };
+      switch (timeOfDay) {
+        case "dawn":
+          return { sun: true, moon: true, stars: true };
+        case "morning":
+          return { sun: true, moon: false, stars: false };
+        case "afternoon":
+          return { sun: true, moon: false, stars: false };
+        case "evening":
+          return { sun: true, moon: true, stars: false };
+        case "night":
+          return { sun: false, moon: true, stars: true };
+        default:
+          return { sun: false, moon: false, stars: false };
+      }
+    }
   };
 
   // 향상된 해 그리기 (실시간 위치와 단계 반영)
@@ -644,13 +722,36 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     ctx.fillRect(0, 0, width, height);
   };
 
+  // 위치 정보가 있을 때 실제 일출/일몰 데이터 가져오기
+  useEffect(() => {
+    if (locationInfo.coordinates && isSmartMode) {
+      const { lat, lon } = locationInfo.coordinates;
+      fetchSunriseData(lat, lon);
+      console.log(
+        `🌍 Location available: ${lat.toFixed(2)}, ${lon.toFixed(
+          2
+        )} - Fetching sunrise data`
+      );
+    }
+  }, [locationInfo.coordinates, isSmartMode]);
+
   // 초기화
   useEffect(() => {
     const newStars: Star[] = [];
-    for (let i = 0; i < performanceConfig.starCount; i++) {
+    const starCount = performanceConfig.starCount;
+
+    // 모바일에서 안전한 영역에 별 생성
+    const safeWidth = isMobile ? window.innerWidth * 0.9 : window.innerWidth;
+    const safeHeight = isMobile
+      ? window.innerHeight * 0.7
+      : window.innerHeight * 0.6;
+    const offsetX = isMobile ? window.innerWidth * 0.05 : 0;
+    const offsetY = isMobile ? window.innerHeight * 0.1 : 0;
+
+    for (let i = 0; i < starCount; i++) {
       newStars.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight * 0.5,
+        x: offsetX + Math.random() * safeWidth,
+        y: offsetY + Math.random() * safeHeight,
         size: Math.random() * 1.5 + 0.5,
         twinkle: Math.random() * Math.PI * 2,
       });
@@ -658,17 +759,27 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     setStarPositions(newStars);
 
     const newClouds: Cloud[] = [];
-    for (let i = 0; i < performanceConfig.cloudCount; i++) {
+    const cloudCount = performanceConfig.cloudCount;
+
+    // 구름도 모바일 화면에 맞게 조정
+    const cloudAreaHeight = isMobile
+      ? window.innerHeight * 0.5
+      : window.innerHeight * 0.4;
+    const cloudAreaTop = isMobile
+      ? window.innerHeight * 0.2
+      : window.innerHeight * 0.15;
+
+    for (let i = 0; i < cloudCount; i++) {
       newClouds.push({
         x: Math.random() * window.innerWidth - 100,
-        y: window.innerHeight * 0.15 + Math.random() * window.innerHeight * 0.3,
-        scale: Math.random() * 0.4 + 0.6,
+        y: cloudAreaTop + Math.random() * cloudAreaHeight,
+        scale: Math.random() * 0.4 + (isMobile ? 0.5 : 0.6), // 모바일에서 약간 작게
         speed: Math.random() * 0.1 + performanceConfig.cloudSpeed,
         opacity: Math.random() * 0.3 + 0.7,
       });
     }
     setCloudPositions(newClouds);
-  }, [currentTheme.weather, performanceConfig]);
+  }, [currentTheme.weather, performanceConfig, isMobile]);
 
   // 날씨별 파티클 생성
   useEffect(() => {
@@ -739,12 +850,24 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
       const { width, height } = canvas;
 
-      // 매 프레임마다 천체 위치 업데이트 (깜빡임 없는 부드러운 이동)
-      if (clockRef.current % 120 === 0) {
-        // 2초마다 위치 재계산 (60fps 기준)
-        const positions = calculateRealtimeCelestialPositions(canvas);
-        realtimeSunPositionRef.current = positions.sunPosition;
-        realtimeMoonPositionRef.current = positions.moonPosition;
+      // 매 프레임마다 천체 위치 업데이트
+      let currentSunPosition = realtimeSunPositionRef.current;
+      let currentMoonPosition = realtimeMoonPositionRef.current;
+
+      if (clockRef.current % 120 === 0 || !isSmartMode) {
+        // 스마트 모드: 2초마다 위치 재계산 (60fps 기준)
+        // 테스트 모드: 매 프레임마다 선택된 시간대 기반으로 계산
+        const positions = calculateCelestialPositions(canvas);
+
+        if (isSmartMode) {
+          // 스마트 모드에서만 ref 업데이트
+          realtimeSunPositionRef.current = positions.sunPosition;
+          realtimeMoonPositionRef.current = positions.moonPosition;
+        }
+
+        // 현재 프레임에서 사용할 위치 설정
+        currentSunPosition = positions.sunPosition;
+        currentMoonPosition = positions.moonPosition;
       }
 
       // 렌더링
@@ -759,11 +882,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
       // 실시간 해/달 그리기
       if (visibility.moon) {
-        drawRealtimeMoon(ctx, realtimeMoonPositionRef.current);
+        drawRealtimeMoon(ctx, currentMoonPosition);
       }
 
       if (visibility.sun) {
-        drawRealtimeSun(ctx, realtimeSunPositionRef.current);
+        drawRealtimeSun(ctx, currentSunPosition);
       }
 
       if (particlePositions.length > 0) {
@@ -787,6 +910,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     cloudPositions,
     particlePositions,
     performanceConfig,
+    isSmartMode, // 스마트 모드 상태 변화도 감지
   ]);
 
   return (

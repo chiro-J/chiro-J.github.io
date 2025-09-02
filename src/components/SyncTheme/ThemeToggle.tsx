@@ -22,9 +22,27 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // 간단한 페이드 효과를 위한 상태
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // 모바일 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // 모바일에서는 기본적으로 접어둠
+      if (mobile && !isCollapsed) {
+        setIsCollapsed(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // 부드러운 전환 함수들
   const smoothSetWeather = (weather: WeatherType) => {
@@ -113,35 +131,37 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   const containerStyle: React.CSSProperties = {
     position: variant === "floating" ? "fixed" : "relative",
-    top: variant === "floating" ? "20px" : "auto",
-    right: variant === "floating" ? "20px" : "auto",
+    top: variant === "floating" ? (isMobile ? "10px" : "20px") : "auto",
+    right: variant === "floating" ? (isMobile ? "10px" : "20px") : "auto",
     zIndex: 1000,
     background: `rgba(0, 0, 0, 0.15)`,
     backdropFilter: "blur(20px)",
     border: `1px solid rgba(255, 255, 255, 0.2)`,
-    borderRadius: "16px",
-    padding: variant === "compact" ? "12px" : "20px",
+    borderRadius: isMobile ? "12px" : "16px",
+    padding: isCollapsed ? "6px" : isMobile ? "16px" : "20px", // 접힌 상태 패딩 최소화
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-    maxWidth: variant === "compact" ? "240px" : "420px",
+    maxWidth: isCollapsed ? "auto" : isMobile ? "280px" : "420px", // 접힌 상태 width 자동 조정
+    width: isCollapsed ? "auto" : isMobile ? "auto" : "100%", // 접힌 상태 width 최소화
     color: currentTheme.colors.text.primary,
-    transition: "all 0.6s ease", // 전환 효과 추가
-    opacity: isTransitioning ? 0.5 : 1, // 페이드 효과
+    transition: "all 0.6s ease",
+    opacity: isTransitioning ? 0.5 : 1,
+    transform: isCollapsed && isMobile ? "scale(0.95)" : "scale(1)",
   };
 
   const buttonStyle: React.CSSProperties = {
     background: `linear-gradient(135deg, ${currentTheme.colors.primary}CC, ${currentTheme.colors.secondary}CC)`,
     color: "white",
     border: "none",
-    borderRadius: "10px",
-    padding: "8px 14px",
+    borderRadius: isMobile ? "8px" : "10px",
+    padding: isMobile ? "6px 10px" : "8px 14px",
     margin: "3px",
     cursor: "pointer",
-    fontSize: "13px",
+    fontSize: isMobile ? "11px" : "13px",
     fontWeight: "500",
     transition: "all 0.3s ease",
     display: "inline-flex",
     alignItems: "center",
-    gap: "6px",
+    gap: isMobile ? "4px" : "6px",
     backdropFilter: "blur(10px)",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
   };
@@ -149,13 +169,14 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   const selectStyle: React.CSSProperties = {
     background: `rgba(255, 255, 255, 0.1)`,
     border: `1px solid rgba(255, 255, 255, 0.2)`,
-    borderRadius: "8px",
-    padding: "8px 12px",
+    borderRadius: isMobile ? "6px" : "8px",
+    padding: isMobile ? "6px 8px" : "8px 12px",
     margin: "4px",
     color: currentTheme.colors.text.primary,
-    fontSize: "14px",
+    fontSize: isMobile ? "12px" : "14px",
     cursor: "pointer",
     backdropFilter: "blur(10px)",
+    width: isMobile ? "100%" : "auto",
   };
 
   // 실시간 시간 표시
@@ -177,101 +198,199 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     }
   };
 
-  if (variant === "compact") {
+  // 접기/펼치기 토글
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
+  // 컴팩트 모드 (접혔을 때)
+  if (isCollapsed) {
     return (
       <div style={containerStyle}>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <select
-            value={currentTheme.weather}
-            onChange={(e) => smoothSetWeather(e.target.value as WeatherType)}
-            style={selectStyle}
-            disabled={isSmartMode || isTransitioning}
+        <button
+          onClick={toggleCollapse}
+          style={{
+            background: isSmartMode
+              ? `linear-gradient(135deg, #10B981, #059669)`
+              : `linear-gradient(135deg, #3B82F6, #1D4ED8)`,
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "10px 16px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: isMobile ? "200px" : "240px", // 고정 크기
+            minWidth: isMobile ? "200px" : "240px", // 최소 크기 보장
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+            whiteSpace: "nowrap",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-1px)";
+            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.3)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
+          }}
+        >
+          {/* 왼쪽: 테마 이모지 */}
+          <span style={{ fontSize: "16px", flex: "0 0 auto" }}>
+            {weatherEmojis[currentTheme.weather]}
+            {timeEmojis[currentTheme.timeOfDay]}
+          </span>
+
+          {/* 중앙: 시간 */}
+          <span
+            style={{
+              fontSize: "11px",
+              opacity: 0.9,
+              flex: "0 0 auto",
+              margin: "0 8px",
+            }}
           >
-            {weathers.map((weather) => (
-              <option key={weather} value={weather}>
-                {weatherEmojis[weather]} {weather}
-              </option>
-            ))}
-          </select>
-          <select
-            value={currentTheme.timeOfDay}
-            onChange={(e) => smoothSetTimeOfDay(e.target.value as TimeOfDay)}
-            style={selectStyle}
-            disabled={isSmartMode || isTransitioning}
+            {getCurrentTimeString()}
+          </span>
+
+          {/* 중앙: 모드 */}
+          <span
+            style={{
+              fontSize: "11px",
+              opacity: 0.9,
+              flex: "0 0 auto",
+              margin: "0 8px",
+            }}
           >
-            {times.map((time) => (
-              <option key={time} value={time}>
-                {timeEmojis[time]} {time}
-              </option>
-            ))}
-          </select>
-        </div>
+            {isSmartMode ? "Sync" : "Test"}
+          </span>
+
+          {/* 오른쪽: 펼치기 아이콘 */}
+          <span
+            style={{
+              fontSize: "12px",
+              opacity: 0.7,
+              flex: "0 0 auto",
+            }}
+          >
+            📁
+          </span>
+        </button>
       </div>
     );
   }
 
+  // 풀모드 (펼쳐진 상태)
   return (
     <div style={containerStyle}>
       {/* 헤더 */}
-      <div style={{ marginBottom: "16px", textAlign: "center" }}>
-        <h3
-          style={{
-            margin: "0 0 8px 0",
-            color: currentTheme.colors.text.primary,
-            fontSize: "1.1rem",
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-          }}
-        >
-          🎨 Theme Studio
-          {/* 디버그 패널 토글 버튼 */}
-          <button
-            onClick={() => setShowDebugPanel(!showDebugPanel)}
-            style={{
-              background: showDebugPanel
-                ? "rgba(34, 197, 94, 0.3)"
-                : "rgba(100, 100, 100, 0.3)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              borderRadius: "6px",
-              padding: "4px 8px",
-              color: currentTheme.colors.text.primary,
-              fontSize: "10px",
-              cursor: "pointer",
-            }}
-          >
-            🛠 {showDebugPanel ? "Hide" : "Debug"}
-          </button>
-        </h3>
-
-        {/* 실시간 시계 */}
+      <div
+        style={{
+          marginBottom: isMobile ? "12px" : "16px",
+          textAlign: "center",
+        }}
+      >
         <div
           style={{
-            fontSize: "12px",
-            color: currentTheme.colors.text.secondary,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginBottom: "8px",
           }}
         >
-          🕐 Local Time: {getCurrentTimeString()}
+          <h3
+            style={{
+              margin: 0,
+              color: currentTheme.colors.text.primary,
+              fontSize: isMobile ? "0.9rem" : "1.1rem",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            🎨 Theme Studio
+            {/* 디버그 패널 토글 버튼 */}
+            {!isMobile && (
+              <button
+                onClick={() => setShowDebugPanel(!showDebugPanel)}
+                style={{
+                  background: showDebugPanel
+                    ? "rgba(34, 197, 94, 0.3)"
+                    : "rgba(100, 100, 100, 0.3)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  color: currentTheme.colors.text.primary,
+                  fontSize: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                🛠 {showDebugPanel ? "Hide" : "Debug"}
+              </button>
+            )}
+          </h3>
+
+          {/* 접기 버튼 */}
+          <button
+            onClick={toggleCollapse}
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "6px",
+              padding: "4px 6px",
+              color: currentTheme.colors.text.primary,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+            }}
+          >
+            📁
+          </button>
         </div>
+
+        {/* 실시간 시계 */}
+        {!isMobile && (
+          <div
+            style={{
+              fontSize: "12px",
+              color: currentTheme.colors.text.secondary,
+              marginBottom: "8px",
+            }}
+          >
+            🕐 Local Time: {getCurrentTimeString()}
+          </div>
+        )}
 
         {/* 현재 테마 표시 */}
         <div
           style={{
             background: `rgba(255, 255, 255, 0.08)`,
-            padding: "12px",
-            borderRadius: "12px",
-            marginBottom: "16px",
+            padding: isMobile ? "8px" : "12px",
+            borderRadius: isMobile ? "8px" : "12px",
+            marginBottom: isMobile ? "12px" : "16px",
             border: `1px solid rgba(255, 255, 255, 0.1)`,
-            transition: "all 0.6s ease", // 색상 전환 효과
+            transition: "all 0.6s ease",
           }}
         >
-          <div style={{ fontWeight: "600", marginBottom: "8px" }}>
+          <div
+            style={{
+              fontWeight: "600",
+              marginBottom: "8px",
+              fontSize: isMobile ? "0.9rem" : "1rem",
+            }}
+          >
             {currentTheme.name}
           </div>
-          <div style={{ fontSize: "28px", margin: "8px 0" }}>
+          <div
+            style={{
+              fontSize: isMobile ? "20px" : "28px",
+              margin: "8px 0",
+            }}
+          >
             {weatherEmojis[currentTheme.weather]}{" "}
             {timeEmojis[currentTheme.timeOfDay]}
           </div>
@@ -297,7 +416,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           {isSmartMode && locationInfo.city && (
             <div
               style={{
-                fontSize: "11px",
+                fontSize: isMobile ? "10px" : "11px",
                 opacity: 0.7,
                 color: currentTheme.colors.text.secondary,
                 marginTop: "6px",
@@ -325,7 +444,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       </div>
 
       {/* 디버그 패널 */}
-      {showDebugPanel && debugInfo && (
+      {!isMobile && showDebugPanel && debugInfo && (
         <div
           style={{
             background: "rgba(0, 0, 0, 0.4)",
@@ -361,8 +480,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         </div>
       )}
 
-      {/* 단순한 모드 토글 버튼 */}
-      <div style={{ marginBottom: "16px" }}>
+      {/* 스마트 모드 토글 버튼 */}
+      <div style={{ marginBottom: isMobile ? "12px" : "16px" }}>
         <button
           onClick={handleSmartModeToggle}
           disabled={isLoading}
@@ -377,32 +496,34 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               : `linear-gradient(135deg, #3B82F6, #1D4ED8)`,
             width: "100%",
             justifyContent: "center",
-            padding: "14px",
-            fontSize: "14px",
+            padding: isMobile ? "10px" : "14px",
+            fontSize: isMobile ? "12px" : "14px",
             fontWeight: "600",
-            minHeight: "50px",
+            minHeight: isMobile ? "40px" : "50px",
           }}
         >
           {isLoading ? (
             <>
               <div
                 style={{
-                  width: "16px",
-                  height: "16px",
+                  width: isMobile ? "12px" : "16px",
+                  height: isMobile ? "12px" : "16px",
                   border: "2px solid rgba(255,255,255,0.3)",
                   borderTop: "2px solid white",
                   borderRadius: "50%",
                   animation: "spin 1s linear infinite",
                 }}
               />
-              Syncing Weather & Time...
+              {isMobile ? "Syncing..." : "Syncing Weather & Time..."}
             </>
           ) : (
             <>
               {isSmartMode ? (
-                <>🔄 Switch to Test Mode</>
+                <>🔄 {isMobile ? "Test Mode" : "Switch to Test Mode"}</>
               ) : (
-                <>⚡ Sync with Real Weather & Time</>
+                <>
+                  ⚡ {isMobile ? "Auto Sync" : "Sync with Real Weather & Time"}
+                </>
               )}
             </>
           )}
@@ -411,7 +532,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         {/* 상태별 설명 */}
         <div
           style={{
-            fontSize: "11px",
+            fontSize: isMobile ? "10px" : "11px",
             color: currentTheme.colors.text.secondary,
             textAlign: "center",
             marginTop: "8px",
@@ -424,12 +545,18 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 🤖 Smart Mode Active (
                 {locationInfo.method?.toUpperCase() || "LOADING"})
               </div>
-              <div style={{ opacity: 0.7 }}>
-                Real-time sync enabled • Click to test different themes
-              </div>
+              {!isMobile && (
+                <div style={{ opacity: 0.7 }}>
+                  Real-time sync enabled • Click to test different themes
+                </div>
+              )}
             </>
           ) : (
-            "Test Mode • Click to sync with your current weather & time"
+            `Test Mode • ${
+              isMobile
+                ? "Click to sync"
+                : "Click to sync with your current weather & time"
+            }`
           )}
         </div>
 
@@ -437,11 +564,11 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         {error && (
           <div
             style={{
-              fontSize: "11px",
+              fontSize: isMobile ? "10px" : "11px",
               color: "#EF4444",
               textAlign: "center",
               marginTop: "8px",
-              padding: "8px",
+              padding: isMobile ? "6px" : "8px",
               background: "rgba(239, 68, 68, 0.1)",
               borderRadius: "8px",
               border: "1px solid rgba(239, 68, 68, 0.2)",
@@ -457,91 +584,131 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       {!isSmartMode && (
         <>
           {/* 날씨 선택 */}
-          <div style={{ marginBottom: "14px" }}>
+          <div style={{ marginBottom: isMobile ? "10px" : "14px" }}>
             <h4
               style={{
                 margin: "0 0 8px 0",
-                fontSize: "13px",
+                fontSize: isMobile ? "12px" : "13px",
                 opacity: 0.8,
                 fontWeight: "500",
               }}
             >
               Weather {isTransitioning && "(Transitioning...)"}
             </h4>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-              {weathers.map((weather) => (
-                <button
-                  key={weather}
-                  onClick={() => smoothSetWeather(weather)}
-                  disabled={isTransitioning}
-                  style={{
-                    ...buttonStyle,
-                    opacity: isTransitioning
-                      ? 0.4
-                      : currentTheme.weather === weather
-                      ? 1
-                      : 0.6,
-                    transform:
-                      currentTheme.weather === weather
-                        ? "scale(1.05)"
-                        : "scale(1)",
-                    fontSize: "12px",
-                    padding: "6px 10px",
-                    background:
-                      currentTheme.weather === weather
-                        ? `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`
-                        : `rgba(255, 255, 255, 0.15)`,
-                    cursor: isTransitioning ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {weatherEmojis[weather]} {weather}
-                </button>
-              ))}
-            </div>
+
+            {isMobile ? (
+              /* 모바일: 드롭다운 */
+              <select
+                value={currentTheme.weather}
+                onChange={(e) =>
+                  smoothSetWeather(e.target.value as WeatherType)
+                }
+                style={selectStyle}
+                disabled={isTransitioning}
+              >
+                {weathers.map((weather) => (
+                  <option key={weather} value={weather}>
+                    {weatherEmojis[weather]} {weather}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              /* 데스크톱: 버튼들 */
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                {weathers.map((weather) => (
+                  <button
+                    key={weather}
+                    onClick={() => smoothSetWeather(weather)}
+                    disabled={isTransitioning}
+                    style={{
+                      ...buttonStyle,
+                      opacity: isTransitioning
+                        ? 0.4
+                        : currentTheme.weather === weather
+                        ? 1
+                        : 0.6,
+                      transform:
+                        currentTheme.weather === weather
+                          ? "scale(1.05)"
+                          : "scale(1)",
+                      fontSize: "12px",
+                      padding: "6px 10px",
+                      background:
+                        currentTheme.weather === weather
+                          ? `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`
+                          : `rgba(255, 255, 255, 0.15)`,
+                      cursor: isTransitioning ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {weatherEmojis[weather]} {weather}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 시간대 선택 */}
-          <div style={{ marginBottom: "14px" }}>
+          <div style={{ marginBottom: isMobile ? "10px" : "14px" }}>
             <h4
               style={{
                 margin: "0 0 8px 0",
-                fontSize: "13px",
+                fontSize: isMobile ? "12px" : "13px",
                 opacity: 0.8,
                 fontWeight: "500",
               }}
             >
               Time of Day {isTransitioning && "(Transitioning...)"}
             </h4>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-              {times.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => smoothSetTimeOfDay(time)}
-                  disabled={isTransitioning}
-                  style={{
-                    ...buttonStyle,
-                    opacity: isTransitioning
-                      ? 0.4
-                      : currentTheme.timeOfDay === time
-                      ? 1
-                      : 0.6,
-                    transform:
-                      currentTheme.timeOfDay === time
-                        ? "scale(1.05)"
-                        : "scale(1)",
-                    fontSize: "12px",
-                    padding: "6px 10px",
-                    background:
-                      currentTheme.timeOfDay === time
-                        ? `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`
-                        : `rgba(255, 255, 255, 0.15)`,
-                    cursor: isTransitioning ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {timeEmojis[time]} {time}
-                </button>
-              ))}
-            </div>
+
+            {isMobile ? (
+              /* 모바일: 드롭다운 */
+              <select
+                value={currentTheme.timeOfDay}
+                onChange={(e) =>
+                  smoothSetTimeOfDay(e.target.value as TimeOfDay)
+                }
+                style={selectStyle}
+                disabled={isTransitioning}
+              >
+                {times.map((time) => (
+                  <option key={time} value={time}>
+                    {timeEmojis[time]} {time}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              /* 데스크톱: 버튼들 */
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                {times.map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => smoothSetTimeOfDay(time)}
+                    disabled={isTransitioning}
+                    style={{
+                      ...buttonStyle,
+                      opacity: isTransitioning
+                        ? 0.4
+                        : currentTheme.timeOfDay === time
+                        ? 1
+                        : 0.6,
+                      transform:
+                        currentTheme.timeOfDay === time
+                          ? "scale(1.05)"
+                          : "scale(1)",
+                      fontSize: "12px",
+                      padding: "6px 10px",
+                      background:
+                        currentTheme.timeOfDay === time
+                          ? `linear-gradient(135deg, ${currentTheme.colors.primary}, ${currentTheme.colors.secondary})`
+                          : `rgba(255, 255, 255, 0.15)`,
+                      cursor: isTransitioning ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {timeEmojis[time]} {time}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -568,9 +735,16 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           fontWeight: "600",
           cursor: isSmartMode || isTransitioning ? "not-allowed" : "pointer",
           opacity: isSmartMode || isTransitioning ? 0.5 : 1,
+          fontSize: isMobile ? "12px" : "14px",
+          padding: isMobile ? "8px" : "12px",
         }}
       >
-        🎲 {isTransitioning ? "Transitioning..." : "Random Theme"}
+        🎲{" "}
+        {isTransitioning
+          ? "Transitioning..."
+          : isMobile
+          ? "Random"
+          : "Random Theme"}
       </button>
 
       {/* CSS 애니메이션 */}
