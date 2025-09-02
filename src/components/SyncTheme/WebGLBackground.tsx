@@ -577,7 +577,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
     clouds.forEach((cloud, index) => {
       cloud.x += cloud.speed * performanceConfig.cloudSpeed;
-      if (cloud.x > width + 120) cloud.x = -150;
+
+      // 구름이 화면 전체를 순환하도록 (영역 제한 없음)
+      if (cloud.x > width + 120) {
+        cloud.x = -150;
+      }
 
       const cloudX = cloud.x;
       const cloudY = cloud.y + Math.sin(clockRef.current * 0.0005 + index) * 3;
@@ -735,50 +739,83 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
     }
   }, [locationInfo.coordinates, isSmartMode]);
 
-  // 초기화
+  // 초기화 및 화면 크기 변경 감지
   useEffect(() => {
-    const newStars: Star[] = [];
-    const starCount = performanceConfig.starCount;
+    const initializeElements = () => {
+      const newStars: Star[] = [];
+      const starCount = performanceConfig.starCount;
 
-    // 모바일에서 안전한 영역에 별 생성
-    const safeWidth = isMobile ? window.innerWidth * 0.9 : window.innerWidth;
-    const safeHeight = isMobile
-      ? window.innerHeight * 0.7
-      : window.innerHeight * 0.6;
-    const offsetX = isMobile ? window.innerWidth * 0.05 : 0;
-    const offsetY = isMobile ? window.innerHeight * 0.1 : 0;
+      // 모바일에서 안전한 영역에 별 생성
+      const safeWidth = isMobile ? window.innerWidth * 0.9 : window.innerWidth;
+      const safeHeight = isMobile
+        ? window.innerHeight * 0.7
+        : window.innerHeight * 0.6;
+      const offsetX = isMobile ? window.innerWidth * 0.05 : 0;
+      const offsetY = isMobile ? window.innerHeight * 0.1 : 0;
 
-    for (let i = 0; i < starCount; i++) {
-      newStars.push({
-        x: offsetX + Math.random() * safeWidth,
-        y: offsetY + Math.random() * safeHeight,
-        size: Math.random() * 1.5 + 0.5,
-        twinkle: Math.random() * Math.PI * 2,
-      });
-    }
-    setStarPositions(newStars);
+      for (let i = 0; i < starCount; i++) {
+        newStars.push({
+          x: offsetX + Math.random() * safeWidth,
+          y: offsetY + Math.random() * safeHeight,
+          size: Math.random() * 1.5 + 0.5,
+          twinkle: Math.random() * Math.PI * 2,
+        });
+      }
+      setStarPositions(newStars);
 
-    const newClouds: Cloud[] = [];
-    const cloudCount = performanceConfig.cloudCount;
+      const newClouds: Cloud[] = [];
+      const cloudCount = performanceConfig.cloudCount;
 
-    // 구름도 모바일 화면에 맞게 조정
-    const cloudAreaHeight = isMobile
-      ? window.innerHeight * 0.5
-      : window.innerHeight * 0.4;
-    const cloudAreaTop = isMobile
-      ? window.innerHeight * 0.2
-      : window.innerHeight * 0.15;
+      // 구름을 화면 전체에 분포시키되, 천체 영역 중심으로 밀도 높게 배치
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
 
-    for (let i = 0; i < cloudCount; i++) {
-      newClouds.push({
-        x: Math.random() * window.innerWidth - 100,
-        y: cloudAreaTop + Math.random() * cloudAreaHeight,
-        scale: Math.random() * 0.4 + (isMobile ? 0.5 : 0.6), // 모바일에서 약간 작게
-        speed: Math.random() * 0.1 + performanceConfig.cloudSpeed,
-        opacity: Math.random() * 0.3 + 0.7,
-      });
-    }
-    setCloudPositions(newClouds);
+      // 천체들이 있는 중심 영역 계산 (현재 화면 크기 기준)
+      const celestialCenterX = screenWidth * 0.5;
+      const celestialCenterY = screenHeight * 0.35;
+      const celestialRadius = Math.min(screenWidth, screenHeight) * 0.3;
+
+      for (let i = 0; i < cloudCount; i++) {
+        let cloudX, cloudY;
+
+        // 70%는 천체 중심 영역에, 30%는 화면 전체에 랜덤 배치
+        if (Math.random() < 0.7) {
+          // 천체 중심 영역에 집중 배치 (가우시안 분포 근사)
+          const angle = Math.random() * Math.PI * 2;
+          const distance =
+            (Math.random() + Math.random()) * 0.5 * celestialRadius; // 중심에 더 많이
+          cloudX = celestialCenterX + Math.cos(angle) * distance - 100;
+          cloudY = celestialCenterY + Math.sin(angle) * distance * 0.6; // 세로는 좀 더 평평하게
+        } else {
+          // 화면 전체에 랜덤 배치
+          cloudX = Math.random() * screenWidth - 100;
+          cloudY = screenHeight * 0.1 + Math.random() * screenHeight * 0.6;
+        }
+
+        newClouds.push({
+          x: cloudX,
+          y: cloudY,
+          scale: Math.random() * 0.4 + (isMobile ? 0.5 : 0.6),
+          speed: Math.random() * 0.1 + performanceConfig.cloudSpeed,
+          opacity: Math.random() * 0.3 + 0.7,
+        });
+      }
+      setCloudPositions(newClouds);
+    };
+
+    // 초기 실행
+    initializeElements();
+
+    // 화면 크기 변경 감지하여 구름 재배치
+    const handleResize = () => {
+      setTimeout(initializeElements, 100); // 약간 지연으로 렌더링 안정화
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, [currentTheme.weather, performanceConfig, isMobile]);
 
   // 날씨별 파티클 생성

@@ -24,24 +24,53 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   // 간단한 페이드 효과를 위한 상태
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // 모바일 감지
+  // 디바이스별 폰트 크기 계산
+  const getResponsiveFontSize = () => {
+    if (isMobile) return "16px";
+    if (isTablet) return "18px";
+    return "20px"; // PC
+  };
+
+  // 디바이스별 박스 크기 계산 (내용에 맞게 더 크게 조정)
+  const getResponsiveBoxWidth = () => {
+    const screenWidth = window.innerWidth;
+
+    if (isMobile) {
+      // 모바일에서는 화면 너비의 85% 또는 최대 280px
+      return Math.min(screenWidth * 0.85, 280) + "px";
+    }
+    if (isTablet) {
+      // 태블릿에서는 화면 너비의 65% 또는 최대 320px
+      return Math.min(screenWidth * 0.65, 320) + "px";
+    }
+    // PC에서는 고정 크기 더 크게
+    return "340px";
+  };
+
+  // 모바일/태블릿/PC 감지
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
+    const checkDeviceType = () => {
+      const width = window.innerWidth;
+      const mobile = width < 768;
+      const tablet = width >= 768 && width < 1024;
+
       setIsMobile(mobile);
+      setIsTablet(tablet);
+
       // 모바일에서는 기본적으로 접어둠
       if (mobile && !isCollapsed) {
         setIsCollapsed(true);
       }
     };
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    checkDeviceType();
+    window.addEventListener("resize", checkDeviceType);
+    return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
   // 부드러운 전환 함수들
@@ -216,16 +245,17 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             color: "white",
             border: "none",
             borderRadius: "8px",
-            padding: "10px 16px",
+            padding: "12px 30px", // 패딩 대폭 증가 (10px 20px → 12px 30px)
             cursor: "pointer",
             fontSize: "12px",
             fontWeight: "600",
             transition: "all 0.3s ease",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            width: isMobile ? "200px" : "240px", // 고정 크기
-            minWidth: isMobile ? "200px" : "240px", // 최소 크기 보장
+            justifyContent: "center", // space-between에서 center로 변경
+            gap: "16px", // 고정 간격 12px → 16px로 증가
+            width: getResponsiveBoxWidth(),
+            minWidth: getResponsiveBoxWidth(),
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
             whiteSpace: "nowrap",
           }}
@@ -247,10 +277,15 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           {/* 중앙: 시간 */}
           <span
             style={{
-              fontSize: "11px",
-              opacity: 0.9,
+              fontSize: getResponsiveFontSize(),
+              opacity: 1,
+              fontWeight: "600",
+              fontFamily:
+                "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", // monospace 유지
+              width: "85px",
+              textAlign: "center",
               flex: "0 0 auto",
-              margin: "0 8px",
+              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
             }}
           >
             {getCurrentTimeString()}
@@ -259,10 +294,15 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           {/* 중앙: 모드 */}
           <span
             style={{
-              fontSize: "11px",
-              opacity: 0.9,
+              fontSize: getResponsiveFontSize(),
+              opacity: 1,
+              fontWeight: "600",
+              fontFamily:
+                "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", // 시간과 같은 monospace로 통일
+              width: "50px",
+              textAlign: "center",
               flex: "0 0 auto",
-              margin: "0 8px",
+              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
             }}
           >
             {isSmartMode ? "Sync" : "Test"}
