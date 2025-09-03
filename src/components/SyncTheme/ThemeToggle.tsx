@@ -40,7 +40,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   const getCollapsedBoxWidth = () => {
     if (isMobile) return "100px";
     if (isTablet) return "100px";
-    return "200px";
+    return "100px";
   };
 
   // 모바일/태블릿/PC 감지
