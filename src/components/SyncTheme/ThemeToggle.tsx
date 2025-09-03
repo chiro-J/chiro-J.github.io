@@ -324,7 +324,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             style={{
               margin: 0,
               color: currentTheme.colors.text.primary,
-              fontSize: isMobile ? "0.9rem" : "1.1rem",
+              fontSize: isMobile ? "0.66rem" : "1.1rem",
               fontWeight: "600",
               display: "flex",
               alignItems: "center",
