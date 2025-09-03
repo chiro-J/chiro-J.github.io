@@ -242,7 +242,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             style={{
               fontSize: "16px", // 폰트 크기 살짝 줄임
               fontWeight: "700",
-              fontFamily: "monospace",
+              fontFamily: "cursive",
               textAlign: "right", // 오른쪽 정렬
               textShadow: "0 2px 6px rgba(0,0,0,0.8)", // 그림자 강화로 가독성 확보
               color: "white",
@@ -257,7 +257,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             style={{
               fontSize: "16px", // 폰트 크기 살짝 줄임
               fontWeight: "600",
-              fontFamily: "monospace",
+              fontFamily: "sans-serif",
               textAlign: "right", // 오른쪽 정렬
               textShadow: "0 2px 6px rgba(0,0,0,0.8)", // 그림자 강화로 가독성 확보
               color: "white",
