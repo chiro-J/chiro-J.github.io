@@ -25,31 +25,22 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
 
-  // 간단한 페이드 효과를 위한 상태
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // 디바이스별 폰트 크기 계산
   const getResponsiveFontSize = () => {
     if (isMobile) return "16px";
     if (isTablet) return "18px";
-    return "20px"; // PC
+    return "20px";
   };
 
-  // 디바이스별 박스 크기 계산 (내용에 맞게 더 크게 조정)
-  const getResponsiveBoxWidth = () => {
-    const screenWidth = window.innerWidth;
-
-    if (isMobile) {
-      // 모바일에서는 화면 너비의 85% 또는 최대 280px
-      return Math.min(screenWidth * 0.85, 280) + "px";
-    }
-    if (isTablet) {
-      // 태블릿에서는 화면 너비의 65% 또는 최대 320px
-      return Math.min(screenWidth * 0.65, 320) + "px";
-    }
-    // PC에서는 고정 크기 더 크게
-    return "340px";
+  // 접힌 상태 박스 크기 (작게)
+  const getCollapsedBoxWidth = () => {
+    if (isMobile) return "100px";
+    if (isTablet) return "100px";
+    return "200px";
   };
 
   // 모바일/태블릿/PC 감지
@@ -62,7 +53,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       setIsMobile(mobile);
       setIsTablet(tablet);
 
-      // 모바일에서는 기본적으로 접어둠
       if (mobile && !isCollapsed) {
         setIsCollapsed(true);
       }
@@ -73,55 +63,35 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
-  // 부드러운 전환 함수들
   const smoothSetWeather = (weather: WeatherType) => {
     if (isTransitioning || isSmartMode) return;
-
     setIsTransitioning(true);
-
-    // 0.3초 페이드 아웃
     setTimeout(() => {
       setWeather(weather);
-
-      // 0.3초 후 페이드 인
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 300);
+      setTimeout(() => setIsTransitioning(false), 300);
     }, 300);
   };
 
   const smoothSetTimeOfDay = (timeOfDay: TimeOfDay) => {
     if (isTransitioning || isSmartMode) return;
-
     setIsTransitioning(true);
-
     setTimeout(() => {
       setTimeOfDay(timeOfDay);
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 300);
+      setTimeout(() => setIsTransitioning(false), 300);
     }, 300);
   };
 
   const smoothSetTheme = (weather: WeatherType, timeOfDay: TimeOfDay) => {
     if (isTransitioning || isSmartMode) return;
-
     setIsTransitioning(true);
-
     setTimeout(() => {
       setTheme(weather, timeOfDay);
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 300);
+      setTimeout(() => setIsTransitioning(false), 300);
     }, 300);
   };
 
-  // 실시간 시계 업데이트 (1초마다)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -160,23 +130,149 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   const containerStyle: React.CSSProperties = {
     position: variant === "floating" ? "fixed" : "relative",
-    top: variant === "floating" ? (isMobile ? "10px" : "20px") : "auto",
-    right: variant === "floating" ? (isMobile ? "10px" : "20px") : "auto",
+    top: variant === "floating" ? (isMobile ? "15px" : "25px") : "auto",
+    right: variant === "floating" ? (isMobile ? "25px" : "35px") : "auto",
     zIndex: 1000,
     background: `rgba(0, 0, 0, 0.15)`,
     backdropFilter: "blur(20px)",
     border: `1px solid rgba(255, 255, 255, 0.2)`,
     borderRadius: isMobile ? "12px" : "16px",
-    padding: isCollapsed ? "6px" : isMobile ? "16px" : "20px", // 접힌 상태 패딩 최소화
+    padding: isCollapsed ? "6px" : isMobile ? "16px" : "20px",
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-    maxWidth: isCollapsed ? "auto" : isMobile ? "280px" : "420px", // 접힌 상태 width 자동 조정
-    width: isCollapsed ? "auto" : isMobile ? "auto" : "100%", // 접힌 상태 width 최소화
+    maxWidth: isCollapsed ? "90vw" : isMobile ? "280px" : "420px",
+    width: isCollapsed ? "auto" : isMobile ? "auto" : "100%",
     color: currentTheme.colors.text.primary,
     transition: "all 0.6s ease",
     opacity: isTransitioning ? 0.5 : 1,
     transform: isCollapsed && isMobile ? "scale(0.95)" : "scale(1)",
   };
 
+  const getCurrentTimeString = () => {
+    return currentTime.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
+
+  const handleSmartModeToggle = () => toggleSmartMode();
+  const toggleCollapse = () => setIsCollapsed(!isCollapsed);
+
+  // 접힌 상태 - 컨테이너 자체를 투명하게
+  if (isCollapsed) {
+    return (
+      <div
+        style={{
+          position: variant === "floating" ? "fixed" : "relative",
+          top: variant === "floating" ? (isMobile ? "15px" : "25px") : "auto",
+          right: variant === "floating" ? (isMobile ? "25px" : "35px") : "auto",
+          zIndex: 1000,
+          // 컨테이너 완전 투명
+          background: "transparent",
+          backdropFilter: "none",
+          border: "none",
+          borderRadius: "0",
+          padding: "0",
+          boxShadow: "none",
+          maxWidth: "none",
+          width: "auto",
+          color: currentTheme.colors.text.primary,
+          transition: "all 0.6s ease",
+          opacity: isTransitioning ? 0.5 : 1,
+          transform: "none",
+        }}
+      >
+        <button
+          onClick={toggleCollapse}
+          onMouseDown={() => setIsPressed(true)}
+          onMouseUp={() => setIsPressed(false)}
+          onMouseLeave={() => setIsPressed(false)}
+          onTouchStart={() => setIsPressed(true)}
+          onTouchEnd={() => setIsPressed(false)}
+          style={{
+            background: isSmartMode
+              ? "rgba(16, 185, 129, 0.25)" // Sync 모드: 은은한 초록
+              : "rgba(59, 130, 246, 0.25)", // Test 모드: 은은한 파랑
+            color: "white",
+            border: `1px solid rgba(255, 255, 255, 0.3)`, // 은은한 테두리
+            borderRadius: "12px",
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            display: "flex",
+            flexDirection: "column", // 세로 배치
+            // alignItems: "center",
+            justifyContent: "center",
+            gap: "6px", // 세로 간격
+            width: getCollapsedBoxWidth(),
+            minWidth: getCollapsedBoxWidth(),
+            maxWidth: getCollapsedBoxWidth(),
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)", // 은은한 그림자
+            whiteSpace: "nowrap",
+            backdropFilter: "none", // 블러 제거
+            WebkitBackdropFilter: "none", // Safari 지원
+            opacity: 1,
+            overflow: "hidden",
+          }}
+          onMouseEnter={(e) => {
+            if (!isPressed) {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.background = isSmartMode
+                ? "rgba(16, 185, 129, 0.35)"
+                : "rgba(59, 130, 246, 0.35)";
+              e.currentTarget.style.boxShadow =
+                "0 6px 20px rgba(0, 0, 0, 0.25)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isPressed) {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background = isSmartMode
+                ? "rgba(16, 185, 129, 0.25)"
+                : "rgba(59, 130, 246, 0.25)";
+              e.currentTarget.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.2)";
+            }
+          }}
+        >
+          {/* 시간 */}
+          <span
+            style={{
+              fontSize: "16px", // 폰트 크기 살짝 줄임
+              fontWeight: "700",
+              fontFamily: "monospace",
+              textAlign: "right", // 오른쪽 정렬
+              textShadow: "0 2px 6px rgba(0,0,0,0.8)", // 그림자 강화로 가독성 확보
+              color: "white",
+              lineHeight: 1,
+            }}
+          >
+            {getCurrentTimeString()}
+          </span>
+
+          {/* 모드 */}
+          <span
+            style={{
+              fontSize: "16px", // 폰트 크기 살짝 줄임
+              fontWeight: "600",
+              fontFamily: "monospace",
+              textAlign: "right", // 오른쪽 정렬
+              textShadow: "0 2px 6px rgba(0,0,0,0.8)", // 그림자 강화로 가독성 확보
+              color: "white",
+              lineHeight: 1,
+              opacity: 0.9,
+            }}
+          >
+            {isSmartMode ? "Sync" : "Test"}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  // 펼쳐진 상태는 기존 코드와 동일...
   const buttonStyle: React.CSSProperties = {
     background: `linear-gradient(135deg, ${currentTheme.colors.primary}CC, ${currentTheme.colors.secondary}CC)`,
     color: "white",
@@ -208,125 +304,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     width: isMobile ? "100%" : "auto",
   };
 
-  // 실시간 시간 표시
-  const getCurrentTimeString = () => {
-    return currentTime.toLocaleTimeString("ko-KR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-  };
-
-  // 스마트 모드 토글 (단순화)
-  const handleSmartModeToggle = () => {
-    if (!isSmartMode) {
-      toggleSmartMode();
-    } else {
-      toggleSmartMode();
-    }
-  };
-
-  // 접기/펼치기 토글
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  // 컴팩트 모드 (접혔을 때)
-  if (isCollapsed) {
-    return (
-      <div style={containerStyle}>
-        <button
-          onClick={toggleCollapse}
-          style={{
-            background: isSmartMode
-              ? `linear-gradient(135deg, #10B981, #059669)`
-              : `linear-gradient(135deg, #3B82F6, #1D4ED8)`,
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            padding: "12px 30px", // 패딩 대폭 증가 (10px 20px → 12px 30px)
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "600",
-            transition: "all 0.3s ease",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center", // space-between에서 center로 변경
-            gap: "16px", // 고정 간격 12px → 16px로 증가
-            width: getResponsiveBoxWidth(),
-            minWidth: getResponsiveBoxWidth(),
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-            whiteSpace: "nowrap",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "translateY(-1px)";
-            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.3)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
-          }}
-        >
-          {/* 왼쪽: 테마 이모지 */}
-          <span style={{ fontSize: "16px", flex: "0 0 auto" }}>
-            {weatherEmojis[currentTheme.weather]}
-            {timeEmojis[currentTheme.timeOfDay]}
-          </span>
-
-          {/* 중앙: 시간 */}
-          <span
-            style={{
-              fontSize: getResponsiveFontSize(),
-              opacity: 1,
-              fontWeight: "600",
-              fontFamily:
-                "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", // monospace 유지
-              width: "85px",
-              textAlign: "center",
-              flex: "0 0 auto",
-              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-            }}
-          >
-            {getCurrentTimeString()}
-          </span>
-
-          {/* 중앙: 모드 */}
-          <span
-            style={{
-              fontSize: getResponsiveFontSize(),
-              opacity: 1,
-              fontWeight: "600",
-              fontFamily:
-                "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", // 시간과 같은 monospace로 통일
-              width: "50px",
-              textAlign: "center",
-              flex: "0 0 auto",
-              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-            }}
-          >
-            {isSmartMode ? "Sync" : "Test"}
-          </span>
-
-          {/* 오른쪽: 펼치기 아이콘 */}
-          <span
-            style={{
-              fontSize: "12px",
-              opacity: 0.7,
-              flex: "0 0 auto",
-            }}
-          >
-            📁
-          </span>
-        </button>
-      </div>
-    );
-  }
-
-  // 풀모드 (펼쳐진 상태)
   return (
     <div style={containerStyle}>
-      {/* 헤더 */}
       <div
         style={{
           marginBottom: isMobile ? "12px" : "16px",
@@ -353,7 +332,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             }}
           >
             🎨 Theme Studio
-            {/* 디버그 패널 토글 버튼 */}
             {!isMobile && (
               <button
                 onClick={() => setShowDebugPanel(!showDebugPanel)}
@@ -373,8 +351,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               </button>
             )}
           </h3>
-
-          {/* 접기 버튼 */}
           <button
             onClick={toggleCollapse}
             style={{
@@ -392,7 +368,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           </button>
         </div>
 
-        {/* 실시간 시계 */}
         {!isMobile && (
           <div
             style={{
@@ -405,7 +380,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           </div>
         )}
 
-        {/* 현재 테마 표시 */}
         <div
           style={{
             background: `rgba(255, 255, 255, 0.08)`,
@@ -426,16 +400,12 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             {currentTheme.name}
           </div>
           <div
-            style={{
-              fontSize: isMobile ? "20px" : "28px",
-              margin: "8px 0",
-            }}
+            style={{ fontSize: isMobile ? "20px" : "28px", margin: "8px 0" }}
           >
             {weatherEmojis[currentTheme.weather]}{" "}
             {timeEmojis[currentTheme.timeOfDay]}
           </div>
 
-          {/* 전환 중 표시 */}
           {isTransitioning && (
             <div
               style={{
@@ -452,7 +422,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             </div>
           )}
 
-          {/* 위치 정보 (스마트 모드 시) */}
           {isSmartMode && locationInfo.city && (
             <div
               style={{
@@ -483,7 +452,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         </div>
       </div>
 
-      {/* 디버그 패널 */}
       {!isMobile && showDebugPanel && debugInfo && (
         <div
           style={{
@@ -508,19 +476,12 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           >
             🔍 Debug Info:
           </div>
-          <pre
-            style={{
-              margin: 0,
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.3,
-            }}
-          >
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.3 }}>
             {debugInfo}
           </pre>
         </div>
       )}
 
-      {/* 스마트 모드 토글 버튼 */}
       <div style={{ marginBottom: isMobile ? "12px" : "16px" }}>
         <button
           onClick={handleSmartModeToggle}
@@ -558,18 +519,17 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             </>
           ) : (
             <>
-              {isSmartMode ? (
-                <>🔄 {isMobile ? "Test Mode" : "Switch to Test Mode"}</>
-              ) : (
-                <>
-                  ⚡ {isMobile ? "Auto Sync" : "Sync with Real Weather & Time"}
-                </>
-              )}
+              {isSmartMode
+                ? isMobile
+                  ? "Test Mode"
+                  : "Switch to Test Mode"
+                : isMobile
+                ? "Auto Sync"
+                : "Sync with Real Weather & Time"}
             </>
           )}
         </button>
 
-        {/* 상태별 설명 */}
         <div
           style={{
             fontSize: isMobile ? "10px" : "11px",
@@ -600,7 +560,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           )}
         </div>
 
-        {/* 에러 표시 */}
         {error && (
           <div
             style={{
@@ -620,10 +579,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         )}
       </div>
 
-      {/* 수동 컨트롤 (스마트 모드 비활성화 시만) */}
       {!isSmartMode && (
         <>
-          {/* 날씨 선택 */}
           <div style={{ marginBottom: isMobile ? "10px" : "14px" }}>
             <h4
               style={{
@@ -637,7 +594,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             </h4>
 
             {isMobile ? (
-              /* 모바일: 드롭다운 */
               <select
                 value={currentTheme.weather}
                 onChange={(e) =>
@@ -653,7 +609,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 ))}
               </select>
             ) : (
-              /* 데스크톱: 버튼들 */
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                 {weathers.map((weather) => (
                   <button
@@ -687,7 +642,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             )}
           </div>
 
-          {/* 시간대 선택 */}
           <div style={{ marginBottom: isMobile ? "10px" : "14px" }}>
             <h4
               style={{
@@ -701,7 +655,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             </h4>
 
             {isMobile ? (
-              /* 모바일: 드롭다운 */
               <select
                 value={currentTheme.timeOfDay}
                 onChange={(e) =>
@@ -717,7 +670,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                 ))}
               </select>
             ) : (
-              /* 데스크톱: 버튼들 */
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                 {times.map((time) => (
                   <button
@@ -753,7 +705,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         </>
       )}
 
-      {/* 랜덤 테마 */}
       <button
         onClick={() => {
           if (!isSmartMode && !isTransitioning) {
@@ -787,20 +738,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           : "Random Theme"}
       </button>
 
-      {/* CSS 애니메이션 */}
       <style
         dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-        `,
+          __html: `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`,
         }}
       />
     </div>
