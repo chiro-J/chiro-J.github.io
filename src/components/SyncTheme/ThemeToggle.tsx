@@ -38,9 +38,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   // 접힌 상태 박스 크기 (작게)
   const getCollapsedBoxWidth = () => {
-    if (isMobile) return "100px";
-    if (isTablet) return "100px";
-    return "100px";
+    if (isMobile) return "108px";
+    if (isTablet) return "108px";
+    return "108px";
   };
 
   // 모바일/태블릿/PC 감지
@@ -240,9 +240,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           {/* 시간 */}
           <span
             style={{
-              fontSize: "16px", // 폰트 크기 살짝 줄임
+              fontSize: "18px", // 폰트 크기 살짝 줄임
               fontWeight: "700",
-              fontFamily: "cursive",
+              fontFamily: "Inter",
               textAlign: "right", // 오른쪽 정렬
               textShadow: "0 2px 6px rgba(0,0,0,0.8)", // 그림자 강화로 가독성 확보
               color: "white",
@@ -255,9 +255,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           {/* 모드 */}
           <span
             style={{
-              fontSize: "16px", // 폰트 크기 살짝 줄임
+              fontSize: "22px", // 폰트 크기 살짝 줄임
               fontWeight: "600",
-              fontFamily: "sans-serif",
+              fontFamily: "Inter",
               textAlign: "right", // 오른쪽 정렬
               textShadow: "0 2px 6px rgba(0,0,0,0.8)", // 그림자 강화로 가독성 확보
               color: "white",
