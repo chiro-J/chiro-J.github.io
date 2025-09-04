@@ -5,7 +5,7 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === "production" ? "/sync-theme-system/" : "/", // GitHub Pages용 base URL
+  base: "/", // GitHub Pages 사용자 사이트는 루트 경로 사용
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
