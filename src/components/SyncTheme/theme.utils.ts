@@ -272,7 +272,7 @@ const colorPalettes: Record<string, ColorPalette> = {
 
 // 모든 테마 설정 생성
 export const createAllThemes = (): Record<ThemeKey, ThemeConfig> => {
-  const themes: Record<ThemeKey, ThemeConfig> = {};
+  const themes = {} as Record<ThemeKey, ThemeConfig>; // Proper type assertion
 
   const weathers: WeatherType[] = [
     "sunny",
@@ -295,15 +295,18 @@ export const createAllThemes = (): Record<ThemeKey, ThemeConfig> => {
       const key = createThemeKey(weather, timeOfDay);
       const colors = colorPalettes[key];
 
-      themes[key] = {
-        name: `${weather.charAt(0).toUpperCase() + weather.slice(1)} ${
-          timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)
-        }`,
-        weather,
-        timeOfDay,
-        colors,
-        effects: getEffectsForWeather(weather),
-      };
+      if (colors) {
+        // Add safety check
+        themes[key] = {
+          name: `${weather.charAt(0).toUpperCase() + weather.slice(1)} ${
+            timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)
+          }`,
+          weather,
+          timeOfDay,
+          colors,
+          effects: getEffectsForWeather(weather),
+        };
+      }
     });
   });
 

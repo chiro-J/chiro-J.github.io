@@ -17,7 +17,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     debugInfo,
     locationInfo,
     toggleSmartMode,
-    updateSmartTheme,
   } = useSmartMode();
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
@@ -28,13 +27,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   const [isPressed, setIsPressed] = useState(false);
 
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  // 디바이스별 폰트 크기 계산
-  const getResponsiveFontSize = () => {
-    if (isMobile) return "16px";
-    if (isTablet) return "18px";
-    return "20px";
-  };
 
   // 접힌 상태 박스 크기 (작게)
   const getCollapsedBoxWidth = () => {
@@ -52,8 +44,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
       setIsMobile(mobile);
       setIsTablet(tablet);
-
-      // 모바일에서는 자동으로 접힌 상태 유지 (이미 true이므로 조건 제거)
     };
 
     checkDeviceType();
@@ -362,7 +352,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               transition: "all 0.3s ease",
             }}
           >
-            📁
+            📍
           </button>
         </div>
 

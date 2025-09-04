@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import { useTheme, useSmartMode } from "./useTheme";
-import type { WeatherType, TimeOfDay } from "./theme.types";
+import type { WeatherType } from "./theme.types"; // Removed unused TimeOfDay
 
 interface CanvasBackgroundProps {
   className?: string;
@@ -47,7 +47,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   const animationIdRef = useRef<number>();
   const clockRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
-  const celestialUpdateRef = useRef<number>(0);
+  // Removed unused celestialUpdateRef
 
   // 실제 일출/일몰 데이터를 위한 상태
   const [sunriseData, setSunriseData] = useState<{
@@ -178,11 +178,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
   // 천체 위치 계산 함수 (스마트 모드/테스트 모드 구분 + 모바일 대응)
   const calculateCelestialPositions = (canvas: HTMLCanvasElement) => {
-    const { width, height } = canvas;
+    const { width } = canvas; // Removed unused height
 
     // 모바일에서 안전한 영역 계산
-    const safeAreaTop = isMobile ? height * 0.15 : height * 0.1; // 모바일에서 더 아래쪽
-    const safeAreaBottom = isMobile ? height * 0.6 : height * 0.5; // 모바일에서 더 위쪽
+    const safeAreaTop = isMobile ? canvas.height * 0.15 : canvas.height * 0.1; // 모바일에서 더 아래쪽
+    const safeAreaBottom = isMobile ? canvas.height * 0.6 : canvas.height * 0.5; // 모바일에서 더 위쪽
     const safeAreaLeft = width * 0.15; // 좌우 15% 여백
     const safeAreaRight = width * 0.85;
 
@@ -553,8 +553,8 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   const drawClouds = (
     ctx: CanvasRenderingContext2D,
     clouds: Cloud[],
-    width: number,
-    height: number
+    width: number
+    // height parameter unused in function body - removed for now
   ) => {
     const getCloudColor = () => {
       switch (currentTheme.weather) {
@@ -909,7 +909,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
 
       // 렌더링
       drawSkyGradient(ctx, width, height);
-      drawClouds(ctx, cloudPositions, width, height);
+      drawClouds(ctx, cloudPositions, width);
 
       const visibility = getCelestialVisibility();
 

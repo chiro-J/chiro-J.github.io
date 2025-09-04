@@ -2,7 +2,7 @@ import { useContext, useCallback, useState, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { ThemeContext } from "./ThemeProvider";
 import type { WeatherType, TimeOfDay } from "./theme.types";
-import { getCurrentTimeOfDay } from "./theme.utils";
+// Removed unused getCurrentTimeOfDay import
 
 const TEMP_API_KEY = "d3db7f268fac45dae3da3fa381c54f1c";
 
@@ -15,7 +15,7 @@ export const useTheme = () => {
 };
 
 export const useSmartMode = () => {
-  const { setTheme, setWeather, setTimeOfDay } = useTheme();
+  const { setTheme, setTimeOfDay } = useTheme(); // Removed unused setWeather
   const [isSmartMode, setIsSmartMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +112,7 @@ export const useSmartMode = () => {
     city?: string;
     country?: string;
   }> => {
-    console.log("🌐 Trying IP location...");
+    console.log("🌍 Trying IP location...");
     const response = await fetch("https://ipapi.co/json/");
     if (!response.ok) throw new Error("IP location failed");
 
@@ -175,66 +175,7 @@ export const useSmartMode = () => {
     [sunriseData]
   );
 
-  // 실시간 태양/달 위치 계산
-  const calculateCelestialPosition = useCallback((sunriseData: any) => {
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    if (!sunriseData) {
-      // Fallback: 기본 위치
-      return {
-        sunPosition: null,
-        moonPosition: null,
-        isDay: currentMinutes >= 6 * 60 && currentMinutes < 18 * 60,
-      };
-    }
-
-    const sunriseMinutes =
-      sunriseData.sunrise.getHours() * 60 + sunriseData.sunrise.getMinutes();
-    const sunsetMinutes =
-      sunriseData.sunset.getHours() * 60 + sunriseData.sunset.getMinutes();
-
-    const isDayTime =
-      currentMinutes >= sunriseMinutes && currentMinutes <= sunsetMinutes;
-
-    let sunPosition = null;
-    let moonPosition = null;
-
-    if (isDayTime) {
-      // 태양 위치 계산 (일출부터 일몰까지의 호 궤도)
-      const dayProgress =
-        (currentMinutes - sunriseMinutes) / (sunsetMinutes - sunriseMinutes);
-      const angle = Math.PI * dayProgress; // 0 to π (반원)
-
-      sunPosition = {
-        x: 0.1 + 0.8 * dayProgress, // 화면 왼쪽(10%)에서 오른쪽(90%)으로
-        y: 0.15 + 0.1 * Math.sin(angle), // 지평선에서 최고점까지 호 궤도
-        progress: dayProgress,
-      };
-    } else {
-      // 달 위치 계산 (밤 시간)
-      let nightProgress;
-      if (currentMinutes < sunriseMinutes) {
-        // 자정 이후부터 일출까지
-        const nightDuration = sunriseMinutes + (24 * 60 - sunsetMinutes);
-        nightProgress =
-          (currentMinutes + (24 * 60 - sunsetMinutes)) / nightDuration;
-      } else {
-        // 일몰 이후부터 자정까지
-        const nightDuration = 24 * 60 - sunsetMinutes + sunriseMinutes;
-        nightProgress = (currentMinutes - sunsetMinutes) / nightDuration;
-      }
-
-      const angle = Math.PI * nightProgress;
-      moonPosition = {
-        x: 0.1 + 0.8 * nightProgress,
-        y: 0.1 + 0.15 * Math.sin(angle),
-        progress: nightProgress,
-      };
-    }
-
-    return { sunPosition, moonPosition, isDay: isDayTime };
-  }, []);
+  // Removed unused calculateCelestialPosition function
 
   const getWeatherFromCoords = useCallback(
     async (
@@ -351,7 +292,7 @@ export const useSmartMode = () => {
       try {
         // 1. 현재 시간 계산 (UI 업데이트 안함)
         const timeResult = getCurrentTimeOfDayAccurate();
-        console.log("🕒 Time Analysis:", timeResult.reason);
+        console.log("🕐 Time Analysis:", timeResult.reason);
 
         let locationResult = null;
         let weatherResult = null;
@@ -408,7 +349,7 @@ export const useSmartMode = () => {
 
           // 3. IP 위치 시도
           try {
-            console.log("🌐 Step 3: Trying IP location...");
+            console.log("🌍 Step 3: Trying IP location...");
             setDebugInfo("Using IP-based location...");
 
             locationResult = await getIPLocation();
@@ -456,14 +397,16 @@ export const useSmartMode = () => {
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         // 한번에 모든 상태 업데이트
-        setLocationInfo(finalLocationInfo);
+        setLocationInfo(finalLocationInfo as typeof locationInfo); // Type assertion to fix the error
         setTheme(weatherResult.weather, timeResult.time);
 
         const debugString = `✅ COMPLETE SUCCESS\n${timeResult.reason}\n${
           weatherResult.debug
         }\n${
-          finalLocationInfo.city
-            ? `Location: ${finalLocationInfo.city}, ${finalLocationInfo.country}`
+          (finalLocationInfo as any).city
+            ? `Location: ${(finalLocationInfo as any).city}, ${
+                (finalLocationInfo as any).country
+              }`
             : "GPS coordinates only"
         }`;
         setDebugInfo(debugString);
@@ -497,6 +440,7 @@ export const useSmartMode = () => {
       getGPSLocation,
       getIPLocation,
       getWeatherFromCoords,
+      getSunriseData,
     ]
   );
 
@@ -537,7 +481,12 @@ export const useSmartMode = () => {
         weatherUpdateInterval.current = null;
       }
     }
-  }, [isSmartMode, setTimeOfDay, updateSmartTheme]);
+  }, [
+    isSmartMode,
+    setTimeOfDay,
+    updateSmartTheme,
+    getCurrentTimeOfDayAccurate,
+  ]);
 
   // GPS 권한 재요청
   const retryGPSLocation = useCallback(async () => {
@@ -594,7 +543,6 @@ export const useSmartMode = () => {
     getGPSLocation,
     getWeatherFromCoords,
     setTheme,
-    setTimeOfDay,
   ]);
 
   // 스마트 모드 토글 (수정된 버전)

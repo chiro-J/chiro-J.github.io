@@ -1,11 +1,11 @@
-import React, { createContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useState, useEffect } from "react";
+import type { ReactNode } from "react"; // Type-only import
 import type {
   ThemeContextType,
   WeatherType,
   TimeOfDay,
   ThemeConfig,
-  ThemeKey,
-} from "./theme.types";
+} from "./theme.types"; // Removed unused ThemeKey
 import {
   createAllThemes,
   createThemeKey,
