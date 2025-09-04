@@ -44,7 +44,7 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { currentTheme } = useTheme();
   const { locationInfo, isSmartMode } = useSmartMode();
-  const animationIdRef = useRef<number>();
+  const animationIdRef = useRef<number | undefined>(undefined);
   const clockRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
   // Removed unused celestialUpdateRef
@@ -347,11 +347,11 @@ export const WebGLBackground: React.FC<CanvasBackgroundProps> = ({
   // 초기 천체 위치 설정 (스마트 모드/테스트 모드 구분)
   useEffect(() => {
     if (canvasRef.current) {
-      const positions = calculateCelestialPositions(canvasRef.current);
+      const positions = calculateCelestialPositions(canvasRef.current); // canvas 인자 추가
       realtimeSunPositionRef.current = positions.sunPosition;
       realtimeMoonPositionRef.current = positions.moonPosition;
     }
-  }, [sunriseData, currentTheme.timeOfDay]); // timeOfDay 변경시에도 초기화
+  }, [sunriseData, currentTheme.timeOfDay, isSmartMode]); // timeOfDay 변경시에도 초기화
 
   // 천체 가시성 (스마트 모드/테스트 모드 구분)
   const getCelestialVisibility = () => {
