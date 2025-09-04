@@ -22,7 +22,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // 초기값을 true로 변경
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
@@ -53,9 +53,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       setIsMobile(mobile);
       setIsTablet(tablet);
 
-      if (mobile && !isCollapsed) {
-        setIsCollapsed(true);
-      }
+      // 모바일에서는 자동으로 접힌 상태 유지 (이미 true이므로 조건 제거)
     };
 
     checkDeviceType();
@@ -187,7 +185,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           onClick={toggleCollapse}
           onMouseDown={() => setIsPressed(true)}
           onMouseUp={() => setIsPressed(false)}
-          onMouseLeave={() => setIsPressed(false)}
           onTouchStart={() => setIsPressed(true)}
           onTouchEnd={() => setIsPressed(false)}
           style={{
@@ -228,6 +225,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             }
           }}
           onMouseLeave={(e) => {
+            setIsPressed(false);
             if (!isPressed) {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.background = isSmartMode
